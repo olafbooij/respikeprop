@@ -39,6 +39,13 @@ namespace resp {
     double uM;
     double uS;
     double uR;
+    const double tauM = 4.0;
+    const double tauS = 2.0;
+    const double tauR = 20.0;
+    const double timestep = .001;
+    const double tauM_step = 1 / exp(timestep / tauM);
+    const double tauS_step = 1 / exp(timestep / tauS);
+    const double tauR_step = 1 / exp(timestep / tauR);
   };
 
   auto make_neuron = []()
@@ -59,18 +66,6 @@ namespace resp {
 
   void forward_propagate(neuron& n, double time)
   {
-    const double tauM(4.0);
-    const double tauS(2.0);
-    const double tauR(20.0);
-    const double threshold = 1.;
-    const double timestep = .001;
-    //const double tauM_step(1 / exp(timestep / tauM));
-    const double tauM_step(1 / exp(1 / tauM * timestep));
-    const double tauS_step(1 / exp(timestep / tauS));
-    const double tauR_step(1 / exp(timestep / tauR));
-      //uM = uM *           (1/ (exp(1/tauM * TIMESTEP)));
-
-
     while(!n.incoming_spike_times.empty() && n.incoming_spike_times.top().first < time)
     {
       n.uM += n.incoming_spike_times.top().second;
@@ -78,9 +73,10 @@ namespace resp {
       n.incoming_spike_times.pop();
     }
 
-    n.uM *= tauM_step;
-    n.uS *= tauS_step;
-    n.uR *= tauR_step;
+    n.uM *= n.tauM_step;
+    n.uS *= n.tauS_step;
+    n.uR *= n.tauR_step;
+    const double threshold = 1.;
     if(n.uM + n.uS + n.uR > threshold)
       fire(n, time);
   }
