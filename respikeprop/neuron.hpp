@@ -41,6 +41,11 @@ namespace resp {
     double uR;
   };
 
+  auto make_neuron = []()
+  {
+    return std::make_shared<neuron>();
+  };
+
   void fire(neuron& n, double time)
   {
     n.spike_times.emplace_back(time);
