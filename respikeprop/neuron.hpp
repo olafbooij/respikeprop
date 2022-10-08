@@ -27,10 +27,11 @@ namespace resp {
 
   struct neuron
   {
-    neuron()
+    neuron(double timestep)
       : uM(0)
       , uS(0)
       , uR(0)
+      , timestep(timestep)
     {}
     std::vector<std::weak_ptr<synapse>> outgoing_synapses;
     std::vector<std::weak_ptr<synapse>> incoming_synapses;
@@ -39,18 +40,18 @@ namespace resp {
     double uM;
     double uS;
     double uR;
+    const double timestep;
     const double tauM = 4.0;
     const double tauS = 2.0;
     const double tauR = 20.0;
-    const double timestep = .001;
     const double tauM_step = 1 / exp(timestep / tauM);
     const double tauS_step = 1 / exp(timestep / tauS);
     const double tauR_step = 1 / exp(timestep / tauR);
   };
 
-  auto make_neuron = []()
+  auto make_neuron = [](auto timestep)
   {
-    return std::make_shared<neuron>();
+    return std::make_shared<neuron>(timestep);
   };
 
   void fire(neuron& n, double time)
