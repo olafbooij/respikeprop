@@ -12,7 +12,7 @@ namespace resp {
   struct synapse
   {
     const std::shared_ptr<neuron> post;
-    const std::shared_ptr<neuron> pre;
+    const std::shared_ptr<neuron> pre; // should swap these
     double weight;
     double delay;
   };
