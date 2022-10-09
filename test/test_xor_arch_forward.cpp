@@ -69,17 +69,19 @@ int main()
     for(auto n: all_neurons)
       forward_propagate(*n, time);
   
-  for(auto time: input_layer.at(0)->spike_times)
-    std::cout << time << std::endl;
-  std::cout << std::endl;
-  for(auto time: hidden_layer.at(0)->spike_times)
-    std::cout << time << std::endl;
-  std::cout << std::endl;
-  for(auto time: output_layer.at(0)->spike_times)
-    std::cout << time << std::endl;
+  assert(! output_layer.at(0)->spike_times.empty());
 
-  for(auto n: input_layer)
-    std::cout << n->key << std::endl;
+  // fixture
+  assert(fabs(output_layer.at(0)->spike_times.at(5) - 19.7) < 0.2);
+
+  //for(auto time: input_layer.at(0)->spike_times)
+  //  std::cout << time << std::endl;
+  //std::cout << std::endl;
+  //for(auto time: hidden_layer.at(0)->spike_times)
+  //  std::cout << time << std::endl;
+  //std::cout << std::endl;
+  //for(auto time: output_layer.at(0)->spike_times)
+  //  std::cout << time << std::endl;
 
   return 0;
 }

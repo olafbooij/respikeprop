@@ -64,13 +64,13 @@ namespace resp {
     for(auto outgoing_synapse_weak: n.outgoing_synapses)
     {
       auto outgoing_synapse = outgoing_synapse_weak.lock();
-      outgoing_synapse->post->incoming_spike_times.emplace(time + outgoing_synapse->delay, outgoing_synapse->weight);
+      outgoing_synapse->post->incoming_spike_times.emplace(- time - outgoing_synapse->delay, outgoing_synapse->weight);
     }
   }
 
   void forward_propagate(neuron& n, double time)
   {
-    while(!n.incoming_spike_times.empty() && n.incoming_spike_times.top().first < time)
+    while(!n.incoming_spike_times.empty() && - n.incoming_spike_times.top().first < time)
     {
       n.uM += n.incoming_spike_times.top().second;
       n.uS -= n.incoming_spike_times.top().second;

@@ -14,7 +14,7 @@ int main()
   for(double time = 0.; time < 10.; time += timestep)
     forward_propagate(*out, time);
   assert(out->spike_times.size() == 1) ;
-  assert(fabs(out->spike_times.at(0) - 5.949) < .01) ;
+  assert(fabs(out->spike_times.at(0) - 5.414) < .01) ;
 
   return 0;
 }
