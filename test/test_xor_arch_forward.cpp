@@ -28,6 +28,14 @@ namespace resp
     return synapses;
   };
 
+  auto create_layer(double timestep, std::vector<std::string>&& keys)
+  {
+    std::vector<neuron_ptr> layer;
+    for(auto key: keys)
+      layer.emplace_back(make_neuron(timestep, key));
+    return layer;
+  };
+
 }
 
 int main()
@@ -35,13 +43,13 @@ int main()
   std::mt19937 random_gen(0);
   using namespace resp;
   double timestep = .1;
-  auto input_layer = std::vector(3, make_neuron(timestep));
-  auto hidden_layer = std::vector(5, make_neuron(timestep));
-  auto output_layer = std::vector(1, make_neuron(timestep));
+  auto input_layer = create_layer(timestep, {"input 1", "input 2", "bias"});
+  auto hidden_layer = create_layer(timestep, {"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"});
+  auto output_layer = create_layer(timestep, {"output"});
   std::vector<neuron_ptr> all_neurons;
-  for(auto neuron: input_layer) all_neurons.emplace_back(neuron);
-  for(auto neuron: hidden_layer) all_neurons.emplace_back(neuron);
-  for(auto neuron: output_layer) all_neurons.emplace_back(neuron);
+  for(auto n: input_layer) all_neurons.emplace_back(n);
+  for(auto n: hidden_layer) all_neurons.emplace_back(n);
+  for(auto n: output_layer) all_neurons.emplace_back(n);
 
   std::vector<synapse_ptr> synapses_to_hidden = connect_layers(input_layer, hidden_layer, -.5, 1., random_gen);
   std::vector<synapse_ptr> synapses_to_output = connect_layers(hidden_layer, output_layer, 0., 1., random_gen);
@@ -58,9 +66,8 @@ int main()
   fire(*(input_layer.at(2)), 0.);
   
   for(double time = 0.; time < 40.; time += timestep)
-    for(auto neuron: all_neurons)
-      forward_propagate(*neuron, time);
-
+    for(auto n: all_neurons)
+      forward_propagate(*n, time);
   
   for(auto time: input_layer.at(0)->spike_times)
     std::cout << time << std::endl;
@@ -70,6 +77,9 @@ int main()
   std::cout << std::endl;
   for(auto time: output_layer.at(0)->spike_times)
     std::cout << time << std::endl;
+
+  for(auto n: input_layer)
+    std::cout << n->key << std::endl;
 
   return 0;
 }

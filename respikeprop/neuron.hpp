@@ -20,18 +20,19 @@ namespace resp {
   auto make_synapse = [](auto post, auto pre, auto weight, auto delay)
   {
     auto s = std::make_shared<synapse>(post, pre, weight, delay);
-    post->incoming_synapses.push_back(s);
-    pre->outgoing_synapses.push_back(s);
+    post->incoming_synapses.emplace_back(s);
+    pre->outgoing_synapses.emplace_back(s);
     return s;
   };
 
   struct neuron
   {
-    neuron(double timestep)
+    neuron(double timestep, std::string key = "neuron")
       : uM(0)
       , uS(0)
       , uR(0)
       , timestep(timestep)
+      , key(key)
     {}
     std::vector<std::weak_ptr<synapse>> outgoing_synapses;
     std::vector<std::weak_ptr<synapse>> incoming_synapses;
@@ -47,11 +48,13 @@ namespace resp {
     const double tauM_step = 1 / exp(timestep / tauM);
     const double tauS_step = 1 / exp(timestep / tauS);
     const double tauR_step = 1 / exp(timestep / tauR);
+    std::string key;
   };
 
-  auto make_neuron = [](auto timestep)
+  template<typename... Args>
+  auto make_neuron(Args&&... args)
   {
-    return std::make_shared<neuron>(timestep);
+    return std::make_shared<neuron>(args...);
   };
 
   void fire(neuron& n, double time)
