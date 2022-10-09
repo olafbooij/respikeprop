@@ -2,6 +2,7 @@
 #include<random>
 #include<cassert>
 #include<respikeprop/neuron.hpp>
+#include<respikeprop/forward.hpp>
 
 namespace resp
 {

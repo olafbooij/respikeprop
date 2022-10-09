@@ -1,6 +1,7 @@
 #include<iostream>
 #include<cassert>
 #include<respikeprop/neuron.hpp>
+#include<respikeprop/forward.hpp>
 
 int main()
 {
