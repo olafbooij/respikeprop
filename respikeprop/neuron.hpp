@@ -36,7 +36,12 @@ namespace resp {
     {}
     std::vector<std::weak_ptr<synapse>> outgoing_synapses;
     std::vector<std::weak_ptr<synapse>> incoming_synapses;
-    std::priority_queue<std::pair<double, double>> incoming_spike_times;
+    struct time_weight
+    {
+      double time, weight;
+      friend bool operator<(auto a, auto b){return a.time > b.time;};  // earliest on top
+    };
+    std::priority_queue<time_weight> incoming_spike_times;
     std::vector<double> spike_times;
     double uM;
     double uS;
@@ -45,9 +50,9 @@ namespace resp {
     const double tauM = 4.0;
     const double tauS = 2.0;
     const double tauR = 20.0;
-    const double tauM_step = 1 / exp(timestep / tauM);
-    const double tauS_step = 1 / exp(timestep / tauS);
-    const double tauR_step = 1 / exp(timestep / tauR);
+    const double tauM_step = 1. / exp(timestep / tauM);
+    const double tauS_step = 1. / exp(timestep / tauS);
+    const double tauR_step = 1. / exp(timestep / tauR);
     std::string key;
   };
 
@@ -64,16 +69,16 @@ namespace resp {
     for(auto outgoing_synapse_weak: n.outgoing_synapses)
     {
       auto outgoing_synapse = outgoing_synapse_weak.lock();
-      outgoing_synapse->post->incoming_spike_times.emplace(- time - outgoing_synapse->delay, outgoing_synapse->weight);
+      outgoing_synapse->post->incoming_spike_times.emplace(time + outgoing_synapse->delay, outgoing_synapse->weight);
     }
   }
 
   void forward_propagate(neuron& n, double time)
   {
-    while(!n.incoming_spike_times.empty() && - n.incoming_spike_times.top().first < time)
+    while(!n.incoming_spike_times.empty() && n.incoming_spike_times.top().time < time)
     {
-      n.uM += n.incoming_spike_times.top().second;
-      n.uS -= n.incoming_spike_times.top().second;
+      n.uM += n.incoming_spike_times.top().weight;
+      n.uS -= n.incoming_spike_times.top().weight;
       n.incoming_spike_times.pop();
     }
 
