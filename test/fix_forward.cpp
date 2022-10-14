@@ -1,21 +1,20 @@
 #include<iostream>
 #include<cassert>
-#include<respikeprop/neuron.hpp>
-#include<respikeprop/forward.hpp>
+#include<respikeprop/forward_exhaust.hpp>
 
 int main()
 {
   using namespace resp;
   double timestep = .001;
-  auto in = make_neuron(timestep);
-  auto out = make_neuron(timestep);
+  auto in = make_neuron();
+  auto out = make_neuron();
   auto s = make_synapse(out, in, 3.0, 1.0);
   for(auto time: {1.0, 4.0})
-    fire(*in, time);
+    in->fire(time);
   for(double time = 0.; time < 10.; time += timestep)
-    forward_propagate(*out, time);
-  assert(out->spike_times.size() == 1) ;
-  assert(fabs(out->spike_times.at(0) - 5.414) < .01) ;
+    out->forward_propagate(time);
+  assert(out->spikes.size() == 1) ;
+  assert(fabs(out->spikes.at(0) - 5.414) < .01) ;
 
   return 0;
 }

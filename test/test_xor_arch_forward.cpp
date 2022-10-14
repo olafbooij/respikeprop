@@ -1,8 +1,7 @@
 #include<iostream>
 #include<random>
 #include<cassert>
-#include<respikeprop/neuron.hpp>
-#include<respikeprop/forward.hpp>
+#include<respikeprop/forward_exhaust.hpp>
 
 namespace resp
 {
@@ -29,11 +28,11 @@ namespace resp
     return synapses;
   };
 
-  auto create_layer(double timestep, std::vector<std::string>&& keys)
+  auto create_layer(std::vector<std::string>&& keys)
   {
     std::vector<neuron_ptr> layer;
     for(auto key: keys)
-      layer.emplace_back(make_neuron(timestep, key));
+      layer.emplace_back(make_neuron(key));
     return layer;
   };
 
@@ -44,9 +43,9 @@ int main()
   std::mt19937 random_gen(0);
   using namespace resp;
   double timestep = .1;
-  auto input_layer = create_layer(timestep, {"input 1", "input 2", "bias"});
-  auto hidden_layer = create_layer(timestep, {"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"});
-  auto output_layer = create_layer(timestep, {"output"});
+  auto input_layer = create_layer({"input 1", "input 2", "bias"});
+  auto hidden_layer = create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"});
+  auto output_layer = create_layer({"output"});
   std::vector<neuron_ptr> all_neurons;
   for(auto n: input_layer) all_neurons.emplace_back(n);
   for(auto n: hidden_layer) all_neurons.emplace_back(n);
@@ -62,26 +61,26 @@ int main()
   }
 
   // first XOR pattern
-  fire(*(input_layer.at(0)), 0.);
-  fire(*(input_layer.at(1)), 0.);
-  fire(*(input_layer.at(2)), 0.);
+  input_layer.at(0)->fire(0.);
+  input_layer.at(1)->fire(0.);
+  input_layer.at(2)->fire(0.);
   
   for(double time = 0.; time < 40.; time += timestep)
     for(auto n: all_neurons)
-      forward_propagate(*n, time);
+      n->forward_propagate(time);
   
-  assert(! output_layer.at(0)->spike_times.empty());
+  assert(! output_layer.at(0)->spikes.empty());
 
   // fixture
-  assert(fabs(output_layer.at(0)->spike_times.at(5) - 19.7) < 0.2);
+  assert(fabs(output_layer.at(0)->spikes.at(5) - 19.7) < 0.2);
 
-  //for(auto time: input_layer.at(0)->spike_times)
+  //for(auto time: input_layer.at(0)->spikes)
   //  std::cout << time << std::endl;
   //std::cout << std::endl;
-  //for(auto time: hidden_layer.at(0)->spike_times)
+  //for(auto time: hidden_layer.at(0)->spikes)
   //  std::cout << time << std::endl;
   //std::cout << std::endl;
-  //for(auto time: output_layer.at(0)->spike_times)
+  //for(auto time: output_layer.at(0)->spikes)
   //  std::cout << time << std::endl;
 
   return 0;
