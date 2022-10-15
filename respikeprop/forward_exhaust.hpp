@@ -9,7 +9,6 @@ namespace resp {
   struct neuron;
   struct synapse
   {
-    const std::shared_ptr<neuron> post;
     const std::shared_ptr<neuron> pre; // should swap these
     double weight;
     double delay;
@@ -17,7 +16,7 @@ namespace resp {
   
   auto make_synapse = [](auto post, auto pre, auto weight, auto delay)
   {
-    auto s = std::make_shared<synapse>(post, pre, weight, delay);
+    auto s = std::make_shared<synapse>(pre, weight, delay);
     post->incoming_synapses.emplace_back(s);
     return s;
   };
