@@ -26,7 +26,7 @@ namespace resp
   {
     std::vector<neuron_ptr> layer;
     for(auto key: keys)
-      layer.emplace_back(make_neuron(key));
+      layer.emplace_back(make_shared<neuron>(key));
     return layer;
   };
 
@@ -47,7 +47,12 @@ int main()
 
   connect_layers(input_layer, hidden_layer, -.5, 1., random_gen);
   // create synapses with only positive weights for 4 hidden neurons
-  connect_layers(std::vector<neuron_ptr>(hidden_layer.begin(), hidden_layer.end() - 1), output_layer, 0., 1., random_gen);
+  //connect_layers(std::vector<neuron_ptr>(hidden_layer.begin(), hidden_layer.end() - 1), output_layer, 0., 1., random_gen);
+  {
+    std::uniform_real_distribution<> random_weight(0., 1.);
+    for(auto pre_it = hidden_layer.begin(); pre_it != hidden_layer.end() - 1; ++pre_it)
+      connect_neurons(*pre_it, output_layer.at(0), random_weight, random_gen);
+  }
   // and with only negative weights for the last hidden neuaron
   std::uniform_real_distribution<> random_weight(-.5, 0.);
   connect_neurons(hidden_layer.back(), output_layer.front(), random_weight, random_gen);
@@ -58,8 +63,14 @@ int main()
   input_layer.at(2)->fire(0.);
   
   for(double time = 0.; time < 40.; time += timestep)
-    for(auto n: all_neurons)
+  {
+    for(auto n: input_layer)
       n->forward_propagate(time);
+    for(auto n: hidden_layer)
+      n->forward_propagate(time);
+    for(auto n: output_layer)
+      n->forward_propagate(time);
+  }
   
   assert(! output_layer.at(0)->spikes.empty());
 

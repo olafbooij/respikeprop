@@ -61,11 +61,6 @@ namespace resp {
         fire(time);
     }
   };
-  template<typename... Args>
-  auto make_neuron(Args&&... args)
-  {
-    return std::make_shared<neuron>(args...);
-  };
 
 
 }
