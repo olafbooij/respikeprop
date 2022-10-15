@@ -14,19 +14,12 @@ namespace resp {
     double delay;
   };
   
-  auto make_synapse = [](auto post, auto pre, auto weight, auto delay)
-  {
-    auto s = std::make_shared<synapse>(pre, weight, delay);
-    post->incoming_synapses.emplace_back(s);
-    return s;
-  };
-
   struct neuron
   {
     neuron(std::string key = "neuron")
       : key(key)
     {}
-    std::vector<std::weak_ptr<synapse>> incoming_synapses;
+    std::vector<synapse> incoming_synapses;
     std::vector<double> spikes;
     const double tau_m = 4.0;
     const double tau_s = 2.0;
@@ -56,11 +49,10 @@ namespace resp {
     void forward_propagate(double time)
     {
       double u;
-      for(auto incoming_synapse_weak: incoming_synapses)
+      for(auto incoming_synapse: incoming_synapses)
       {
-        auto incoming_synapse = incoming_synapse_weak.lock();
-        for(auto pre_spike: incoming_synapse->pre->spikes)
-          u += incoming_synapse->weight * epsilon(time - pre_spike - incoming_synapse->delay);
+        for(auto pre_spike: incoming_synapse.pre->spikes)
+          u += incoming_synapse.weight * epsilon(time - pre_spike - incoming_synapse.delay);
       }
       for(auto ref_spike: spikes)
         u += eta(time - ref_spike);
