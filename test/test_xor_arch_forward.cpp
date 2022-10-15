@@ -52,13 +52,12 @@ int main()
   for(auto n: output_layer) all_neurons.emplace_back(n);
 
   std::vector<synapse_ptr> synapses_to_hidden = connect_layers(input_layer, hidden_layer, -.5, 1., random_gen);
-  std::vector<synapse_ptr> synapses_to_output = connect_layers(hidden_layer, output_layer, 0., 1., random_gen);
-  // hack to make the last hidden only inhibitory 
-  for(auto synapse_weak: hidden_layer.at(4)->outgoing_synapses)
-  {
-    auto synapse = synapse_weak.lock();
-    synapse->weight *= -.5;
-  }
+  // create synapses with only positive weights for 4 hidden neurons
+  std::vector<synapse_ptr> synapses_to_output = connect_layers(std::vector<neuron_ptr>(hidden_layer.begin(), hidden_layer.end() - 1), output_layer, 0., 1., random_gen);
+  // and with only negative weights for the last hidden neuaron
+  std::uniform_real_distribution<> random_weight(-.5, 0.);
+  for(auto synapse: connect_neurons(hidden_layer.back(), output_layer.front(), random_weight, random_gen)) 
+      synapses_to_output.emplace_back(synapse);
 
   // first XOR pattern
   input_layer.at(0)->fire(0.);

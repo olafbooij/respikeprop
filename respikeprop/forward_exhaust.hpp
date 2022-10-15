@@ -19,7 +19,6 @@ namespace resp {
   {
     auto s = std::make_shared<synapse>(post, pre, weight, delay);
     post->incoming_synapses.emplace_back(s);
-    pre->outgoing_synapses.emplace_back(s);
     return s;
   };
 
@@ -28,7 +27,6 @@ namespace resp {
     neuron(std::string key = "neuron")
       : key(key)
     {}
-    std::vector<std::weak_ptr<synapse>> outgoing_synapses;
     std::vector<std::weak_ptr<synapse>> incoming_synapses;
     std::vector<double> spikes;
     const double tau_m = 4.0;
@@ -49,20 +47,6 @@ namespace resp {
         return 0.;
       else
         return - exp(-s / tau_r);
-    };
-    auto epsilond(auto s)
-    {
-      if(s < 0.)
-        return 0.;
-      else
-        return - exp(-s / tau_m) / tau_m + exp(-s / tau_s) / tau_s;
-    };
-    auto etad(auto s)
-    {
-      if(s < 0.)
-        return 0.;
-      else
-        return exp(-s / tau_r) / tau_r;
     };
 
     void fire(double time)
