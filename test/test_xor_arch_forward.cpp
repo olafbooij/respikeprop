@@ -9,22 +9,22 @@ namespace resp
   auto connect_neurons(auto& pre, auto& post, auto& random_weight, auto& random_gen)
   {
     for(auto delay_i = 16; delay_i--;)
-      post->incoming_synapses.emplace_back(pre, random_weight(random_gen), delay_i + 1.0);
+      post.incoming_synapses.emplace_back(&pre, random_weight(random_gen), delay_i + 1.0);
   };
 
   auto connect_layers(auto& pre_layer, auto& post_layer, double min_weight, double max_weight, auto& random_gen)
   {
     std::uniform_real_distribution<> random_weight(min_weight, max_weight);
-    for(auto pre: pre_layer)
-      for(auto post: post_layer)
+    for(auto& pre: pre_layer)
+      for(auto& post: post_layer)
         connect_neurons(pre, post, random_weight, random_gen);
   };
 
   auto create_layer(std::vector<std::string>&& keys)
   {
-    std::vector<std::shared_ptr<neuron>> layer;
+    std::vector<neuron> layer;
     for(auto key: keys)
-      layer.emplace_back(make_shared<neuron>(key));
+      layer.emplace_back(neuron(key));
     return layer;
   };
 
@@ -53,33 +53,33 @@ int main()
   }
 
   // first XOR pattern
-  input_layer.at(0)->fire(0.);
-  input_layer.at(1)->fire(0.);
-  input_layer.at(2)->fire(0.);
+  input_layer.at(0).fire(0.);
+  input_layer.at(1).fire(0.);
+  input_layer.at(2).fire(0.);
   
   for(double time = 0.; time < 40.; time += timestep)
   {
-    for(auto n: input_layer)
-      n->forward_propagate(time);
-    for(auto n: hidden_layer)
-      n->forward_propagate(time);
-    for(auto n: output_layer)
-      n->forward_propagate(time);
+    for(auto& n: input_layer)
+      n.forward_propagate(time);
+    for(auto& n: hidden_layer)
+      n.forward_propagate(time);
+    for(auto& n: output_layer)
+      n.forward_propagate(time);
   }
   
-  assert(! output_layer.at(0)->spikes.empty());
+  assert(! output_layer.at(0).spikes.empty());
 
   // fixture
-  assert(fabs(output_layer.at(0)->spikes.at(5) - 17.3) < 0.2);
+  assert(fabs(output_layer.at(0).spikes.at(5) - 17.3) < 0.2);
 
-  //for(auto time: input_layer.at(0)->spikes)
-  //  std::cout << time << std::endl;
-  //std::cout << std::endl;
-  //for(auto time: hidden_layer.at(0)->spikes)
-  //  std::cout << time << std::endl;
-  //std::cout << std::endl;
-  //for(auto time: output_layer.at(0)->spikes)
-  //  std::cout << time << std::endl;
+  for(auto time: input_layer.at(0).spikes)
+    std::cout << time << std::endl;
+  std::cout << std::endl;
+  for(auto time: hidden_layer.at(0).spikes)
+    std::cout << time << std::endl;
+  std::cout << std::endl;
+  for(auto time: output_layer.at(0).spikes)
+    std::cout << time << std::endl;
 
   return 0;
 }

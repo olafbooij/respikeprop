@@ -9,7 +9,7 @@ namespace resp {
   struct neuron;
   struct synapse
   {
-    const std::shared_ptr<neuron> pre; // should swap these
+    const neuron* pre;
     double weight;
     double delay;
   };
