@@ -30,13 +30,31 @@ namespace resp
 
 }
 
+void propagate(auto& network, const double timestep)
+{
+  for(double time = 0.; time < 40.; time += timestep)
+    for(auto& layer: network)
+      for(auto& n: layer)
+        n.forward_propagate(time);
+}
+void clear(auto& network)
+{
+  for(auto& layer: network)
+    for(auto& n: layer)
+      n.spikes.clear();
+}
+
 int main()
 {
   std::mt19937 random_gen(0);
   using namespace resp;
-  auto input_layer = create_layer({"input 1", "input 2", "bias"});
-  auto hidden_layer = create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"});
-  auto output_layer = create_layer({"output"});
+  std::vector<std::vector<neuron>> network;
+  network.emplace_back(create_layer({"input 1", "input 2", "bias"}));
+  network.emplace_back(create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}));
+  network.emplace_back(create_layer({"output"}));
+  auto& input_layer  = network.at(0);
+  auto& hidden_layer = network.at(1);
+  auto& output_layer = network.at(2);
 
   connect_layers(input_layer, hidden_layer, -.5, 1., random_gen);
 
@@ -50,58 +68,33 @@ int main()
   input_layer.at(0).fire(0.);
   input_layer.at(1).fire(0.);
   input_layer.at(2).fire(0.);
+
+  const double timestep = .01;
   
-  const double timestep = .001;
-  for(double time = 0.; time < 40.; time += timestep)
-  {
-    for(auto& n: input_layer)
-      n.forward_propagate(time);
-    for(auto& n: hidden_layer)
-      n.forward_propagate(time);
-    for(auto& n: output_layer)
-      n.forward_propagate(time);
-  }
+  propagate(network, timestep);
   
   assert(! output_layer.at(0).spikes.empty());
-
   // fixture
   assert(fabs(output_layer.at(0).spikes.at(5) - 17.3) < 0.2);
 
   // check gradient:
   auto error_before = output_layer.at(0).spikes.at(5);
-  // reset neurons (or redo network with same weights?)
-  for(auto& n: input_layer)
-    n.spikes.clear();
-  for(auto& n: hidden_layer)
-    n.spikes.clear();
-  for(auto& n: output_layer)
-    n.spikes.clear();
 
   // small weight change
   const double small = 1e-5;
   hidden_layer.at(2).incoming_synapses.at(30).weight =+ small;
 
-  // propagate
+  clear(network);
   input_layer.at(0).fire(0.);
   input_layer.at(1).fire(0.);
   input_layer.at(2).fire(0.);
-  
-  for(double time = 0.; time < 40.; time += timestep)
-  {
-    for(auto& n: input_layer)
-      n.forward_propagate(time);
-    for(auto& n: hidden_layer)
-      n.forward_propagate(time);
-    for(auto& n: output_layer)
-      n.forward_propagate(time);
-  }
+  propagate(network, timestep);
+
   // check error change equals weight change
   auto error_after = output_layer.at(0).spikes.at(5);
   std::cout << error_before << std::endl;
   std::cout << error_after << std::endl;
   std::cout << (error_after - error_before) / small << std::endl;
-
-
 
   //for(auto time: input_layer.at(0).spikes)
   //  std::cout << time << std::endl;
