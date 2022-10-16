@@ -72,14 +72,14 @@ int main()
   // fixture
   assert(fabs(output_layer.at(0).spikes.at(5) - 17.3) < 0.2);
 
-  for(auto time: input_layer.at(0).spikes)
-    std::cout << time << std::endl;
-  std::cout << std::endl;
-  for(auto time: hidden_layer.at(0).spikes)
-    std::cout << time << std::endl;
-  std::cout << std::endl;
-  for(auto time: output_layer.at(0).spikes)
-    std::cout << time << std::endl;
+  //for(auto time: input_layer.at(0).spikes)
+  //  std::cout << time << std::endl;
+  //std::cout << std::endl;
+  //for(auto time: hidden_layer.at(0).spikes)
+  //  std::cout << time << std::endl;
+  //std::cout << std::endl;
+  //for(auto time: output_layer.at(0).spikes)
+  //  std::cout << time << std::endl;
 
   return 0;
 }

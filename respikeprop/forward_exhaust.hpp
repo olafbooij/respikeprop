@@ -9,7 +9,7 @@ namespace resp {
   struct neuron;
   struct synapse
   {
-    const neuron& pre;
+    const neuron& pre;  // putting a lot of responsibility on user...
     double weight;
     double delay;
   };
