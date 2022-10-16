@@ -7,9 +7,7 @@ namespace resp {
 
   struct neuron
   {
-    neuron(std::string key = "neuron")
-      : key(key)
-    {}
+    neuron(std::string key = "neuron") : key(key) {}
     struct synapse
     {
       const neuron& pre;  // putting a lot of responsibility on user...

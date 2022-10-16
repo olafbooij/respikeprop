@@ -1,5 +1,7 @@
 #include<iostream>
 #include<random>
+#include<array>
+#include<vector>
 #include<cassert>
 #include<respikeprop/forward_backward_exhaust.hpp>
 
@@ -48,13 +50,10 @@ int main()
 {
   std::mt19937 random_gen(0);
   using namespace resp;
-  std::vector<std::vector<neuron>> network;
-  network.emplace_back(create_layer({"input 1", "input 2", "bias"}));
-  network.emplace_back(create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}));
-  network.emplace_back(create_layer({"output"}));
-  auto& input_layer  = network.at(0);
-  auto& hidden_layer = network.at(1);
-  auto& output_layer = network.at(2);
+  std::array network{create_layer({"input 1", "input 2", "bias"}),
+                     create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}),
+                     create_layer({"output"})};
+  auto& [input_layer, hidden_layer, output_layer] = network;
 
   connect_layers(input_layer, hidden_layer, -.5, 1., random_gen);
 
