@@ -1,7 +1,6 @@
 #pragma once
 
 #include<vector>
-#include<memory>
 #include<cmath>
 
 namespace resp {
@@ -24,14 +23,14 @@ namespace resp {
     const double tau_r = 20.0;
     const std::string key;
 
-    auto epsilon(auto s)
+    auto epsilon(const auto s) const
     {
       if(s < 0.)
         return 0.;
       else
         return exp(-s / tau_m) - exp(-s / tau_s);
     };
-    auto eta(auto s)
+    auto eta(const auto s) const
     {
       if(s < 0.)
         return 0.;
