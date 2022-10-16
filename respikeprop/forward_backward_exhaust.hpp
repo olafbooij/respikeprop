@@ -16,20 +16,20 @@ namespace resp {
       double delta_weight;
     };
     std::vector<synapse> incoming_synapses;
-    std::vector<double> spikes;
+    std::vector<double> spikes;  // Eq (1)
     double tau_m = 4.0;
     double tau_s = 2.0;
     double tau_r = 20.0;
     std::string key;
 
-    auto epsilon(const auto s) const
+    auto epsilon(const auto s) const  // Eq (4)
     {
       if(s < 0.)
         return 0.;
       else
         return exp(-s / tau_m) - exp(-s / tau_s);
     };
-    auto eta(const auto s) const
+    auto eta(const auto s) const  // Eq (5)
     {
       if(s < 0.)
         return 0.;
@@ -56,7 +56,13 @@ namespace resp {
       spikes.emplace_back(time);
     }
 
-    void forward_propagate(double time)
+    void forward_propagate(double time)  // Eq (2)
+    {
+      const double threshold = 1.;
+      if(compute_u > threshold)
+        fire(time);
+    }
+    double compute_u(double time)  // Eq (3)
     {
       double u;
       for(auto incoming_synapse: incoming_synapses)
@@ -64,10 +70,9 @@ namespace resp {
           u += incoming_synapse.weight * epsilon(time - pre_spike - incoming_synapse.delay);
       for(auto ref_spike: spikes)
         u += eta(time - ref_spike);
-      const double threshold = 1.;
-      if(u > threshold)
-        fire(time);
+      return u;
     }
+
     void compute_delta_weights(const double learning_rate)  // Eq (9)
     {
       for(auto& synapse: incoming_synapses)
@@ -93,6 +98,10 @@ namespace resp {
       return 0.;
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
+    {
+      return 0.;
+    }
+    double compute_dt_dt(const auto& spike)  // Eq (14)
     {
       return 0.;
     }
