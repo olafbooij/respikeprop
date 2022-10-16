@@ -9,7 +9,7 @@ namespace resp
   auto connect_neurons(auto& pre, auto& post, auto& random_weight, auto& random_gen)
   {
     for(auto delay_i = 16; delay_i--;)
-      post.incoming_synapses.emplace_back(&pre, random_weight(random_gen), delay_i + 1.0);
+      post.incoming_synapses.emplace_back(pre, random_weight(random_gen), delay_i + 1.0);
   };
 
   auto connect_layers(auto& pre_layer, auto& post_layer, double min_weight, double max_weight, auto& random_gen)

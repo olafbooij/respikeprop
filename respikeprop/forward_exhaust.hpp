@@ -9,7 +9,7 @@ namespace resp {
   struct neuron;
   struct synapse
   {
-    const neuron* pre;
+    const neuron& pre;
     double weight;
     double delay;
   };
@@ -51,7 +51,7 @@ namespace resp {
       double u;
       for(auto incoming_synapse: incoming_synapses)
       {
-        for(auto pre_spike: incoming_synapse.pre->spikes)
+        for(auto pre_spike: incoming_synapse.pre.spikes)
           u += incoming_synapse.weight * epsilon(time - pre_spike - incoming_synapse.delay);
       }
       for(auto ref_spike: spikes)
