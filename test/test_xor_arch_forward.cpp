@@ -6,13 +6,13 @@
 namespace resp
 {
 
-  auto connect_neurons(auto& pre, auto& post, auto& random_weight, auto& random_gen)
+  void connect_neurons(const auto& pre, auto& post, auto& random_weight, auto& random_gen)
   {
     for(auto delay_i = 16; delay_i--;)
       post.incoming_synapses.emplace_back(pre, random_weight(random_gen), delay_i + 1.0);
   };
 
-  auto connect_layers(auto& pre_layer, auto& post_layer, double min_weight, double max_weight, auto& random_gen)
+  void connect_layers(const auto& pre_layer, auto& post_layer, const double min_weight, const double max_weight, auto& random_gen)
   {
     std::uniform_real_distribution<> random_weight(min_weight, max_weight);
     for(auto& pre: pre_layer)
@@ -20,10 +20,10 @@ namespace resp
         connect_neurons(pre, post, random_weight, random_gen);
   };
 
-  auto create_layer(std::vector<std::string>&& keys)
+  auto create_layer(const std::vector<std::string>&& keys)
   {
     std::vector<neuron> layer;
-    for(auto key: keys)
+    for(const auto& key: keys)
       layer.emplace_back(neuron(key));
     return layer;
   };
@@ -34,7 +34,7 @@ int main()
 {
   std::mt19937 random_gen(0);
   using namespace resp;
-  double timestep = .1;
+  const double timestep = .1;
   auto input_layer = create_layer({"input 1", "input 2", "bias"});
   auto hidden_layer = create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"});
   auto output_layer = create_layer({"output"});
