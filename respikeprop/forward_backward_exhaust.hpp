@@ -13,6 +13,7 @@ namespace resp {
       const neuron& pre;  // putting a lot of responsibility on user...
       double weight;
       double delay;
+      double delta_weight;
     };
     std::vector<synapse> incoming_synapses;
     std::vector<double> spikes;
@@ -66,6 +67,34 @@ namespace resp {
       const double threshold = 1.;
       if(u > threshold)
         fire(time);
+    }
+    void compute_delta_weights(const double learning_rate)  // Eq (9)
+    {
+      for(auto& synapse: incoming_synapses)
+        for(auto& spike: spikes)
+          synapse.delta_weight += learning_rate * compute_dE_dt(spike) * compute_dt_dw(synapse, spike);
+    }
+    double compute_dt_dw(auto& synapse, const auto& spike)  // Eq (10)
+    {
+      return - compute_du_dw(synapse, spike) / compute_du_dt(spike);
+    }
+    double compute_du_dw(auto& synapse, const auto& spike)  // Eq (11)
+    {
+      double du_dw = 0.;
+      for(auto& pre_spike: synapse.pre.spikes)
+        du_dw += epsilon(spike - pre_spike - synapse.delay);
+      for(auto& ref_spike: spikes)
+        if(ref_spike < spike)
+          du_dw += etad(spike - ref_spike) * compute_dt_dw(synapse, ref_spike);
+      return du_dw;
+    }
+    double compute_du_dt(const auto& spike)  // Eq (12)
+    {
+      return 0.;
+    }
+    double compute_dE_dt(const auto& spike)  // Eq (13)
+    {
+      return 0.;
     }
   };
 
