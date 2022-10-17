@@ -90,20 +90,44 @@ namespace resp {
         du_dw += epsilon(spike - pre_spike - synapse.delay);
       for(auto& ref_spike: spikes)
         if(ref_spike < spike)
-          du_dw += etad(spike - ref_spike) * compute_dt_dw(synapse, ref_spike);
+          du_dw += - etad(spike - ref_spike) * compute_dt_dw(synapse, ref_spike);
       return du_dw;
     }
     double compute_du_dt(const auto& spike)  // Eq (12)
     {
-      return 0.;
+      double du_dt = 0.;
+      for(auto& synapse: incoming_synapses)
+        for(auto& pre_spike: synapse.pre.spikes)
+          du_dt += synapse.weight * epsilond(spike - pre_spike - synapse.delay);
+      for(auto& ref_spike: spikes)
+        if(ref_spike < spike)
+          du_dt += etad(spike - ref_spike);
+      return du_dt;
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {
-      return 0.;
+      double dE_dt = 0.;
+      // TODO post-spikes....
+      //for(auto& post_neuron: outcoming_neurons.post)
+      //  for(auto& post_spike: post_neuron.spikes)
+      //    if(post_spike > spike)
+      //      dE_dt += post_neuron.compute_dE_dt(post_spike) * compute_dt_dpostt(spike, post_neuron, post_spike);
+      return dE_dt;
     }
-    double compute_dt_dt(const auto& spike)  // Eq (14)
+    double compute_dt_dpostt(const auto& spike, const auto& post_neuron, const auto& post_spike)  // Eq (14)
     {
-      return 0.;
+      return - compute_dpostu_dt(spike, post_neuron, post_spike) / post_neuron.compute_du_dt(post_spike);
+    }
+    double compute_dpostu_dt(const auto& spike, const auto& post_neuron, const auto& post_spike)  // Eq (15)
+    {
+      double dpostu_dt = 0.;
+      for(auto& synapse: post_neuron.incoming_synapses)
+        if(synapse.pre == *this)  // does this work?
+          dpostu_dt += synapse.weight * epsilond(post_spike - spike - synapse.delay);
+      for(auto& ref_post_spike: post_neuron.spikes)
+        if(ref_post_spike < post_spike)
+          dpostu_dt += etad(post_spike - ref_post_spike) * compute_dpostu_dt(spike, post_neuron, ref_post_spike);
+      return dpostu_dt;
     }
   };
 
