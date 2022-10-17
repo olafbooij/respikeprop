@@ -8,13 +8,16 @@
 namespace resp
 {
 
-  void connect_neurons(const auto& pre, auto& post, auto&& random_weight, auto& random_gen)
+  void connect_neurons(auto& pre, auto& post, auto&& random_weight, auto& random_gen)
   {
     for(auto delay_i = 16; delay_i--;)
+    {
       post.incoming_synapses.emplace_back(pre, random_weight(random_gen), delay_i + 1.0);
+      pre.post_neuron_ptrs.emplace_back(&post);
+    }
   };
 
-  void connect_layers(const auto& pre_layer, auto& post_layer, const double min_weight, const double max_weight, auto& random_gen)
+  void connect_layers(auto& pre_layer, auto& post_layer, const double min_weight, const double max_weight, auto& random_gen)
   {
     std::uniform_real_distribution<> random_weight(min_weight, max_weight);
     for(auto& pre: pre_layer)
@@ -97,7 +100,9 @@ int main()
   std::cout << error_after - error_before << std::endl;
   std::cout << (error_after - error_before) / small << std::endl;
 
+  // TODO ... put some error on output neurons...
   const double learning_rate = 1e-2;
+  synapse_changed.delta_weight = 0.;
   hidden_layer.at(2).compute_delta_weights(learning_rate);
   std::cout << synapse_changed.delta_weight << std::endl;
   //std::cout << timestep / small << std::endl;
