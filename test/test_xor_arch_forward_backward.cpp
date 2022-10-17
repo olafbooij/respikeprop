@@ -71,7 +71,7 @@ int main()
   input_layer.at(1).fire(0.);
   input_layer.at(2).fire(0.);
 
-  const double timestep = .001;
+  const double timestep = .0001;
   
   propagate(network, timestep);
   
@@ -80,7 +80,7 @@ int main()
   assert(fabs(output_layer.at(0).spikes.at(5) - 17.3) < 0.2);
 
   // check gradient:
-  auto error_before = output_layer.at(0).spikes.at(5);
+  auto error_before = .5 * pow(output_layer.at(0).spikes.at(0) - 10.205, 2);
 
   // small weight change
   const double small = 0.03;
@@ -94,17 +94,18 @@ int main()
   propagate(network, timestep);
 
   // check error change equals weight change
-  auto error_after = output_layer.at(0).spikes.at(5);
+  auto error_after = .5 * pow(output_layer.at(0).spikes.at(0) - 10.205, 2);
+  std::cout << output_layer.at(0).spikes.at(0) << std::endl;
   std::cout << error_before << std::endl;
   std::cout << error_after << std::endl;
   std::cout << error_after - error_before << std::endl;
   std::cout << (error_after - error_before) / small << std::endl;
 
-  // TODO ... put some error on output neurons...
-  const double learning_rate = 1e-2;
-  synapse_changed.delta_weight = 0.;
+  //const double learning_rate = 1e-2;
+  const double learning_rate = 1.;
+  synapse_changed.delta_weight = 0.01;
   hidden_layer.at(2).compute_delta_weights(learning_rate);
-  std::cout << synapse_changed.delta_weight << std::endl;
+  std::cout << - synapse_changed.delta_weight / learning_rate << std::endl;
   //std::cout << timestep / small << std::endl;
   assert(fabs((error_after - error_before) / small - synapse_changed.delta_weight / learning_rate) < (timestep / small));
 

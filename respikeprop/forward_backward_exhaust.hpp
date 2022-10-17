@@ -78,9 +78,8 @@ namespace resp {
     {
       for(auto& synapse: incoming_synapses)
       {
-        std::cout << key << std::endl;
         for(auto& spike: spikes)
-          synapse.delta_weight += learning_rate * compute_dE_dt(spike) * compute_dt_dw(synapse, spike);
+          synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * compute_dt_dw(synapse, spike);
       }
     }
     double compute_dt_dw(auto& synapse, const auto& spike)  // Eq (10)
@@ -110,14 +109,21 @@ namespace resp {
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {
+      if(key == "output")
+      {
+        if(spike == spikes.front())
+          return -1.;
+        else
+          return 0.;
+      }
       double dE_dt = 0.;
       for(auto post_neuron_ptr: post_neuron_ptrs)
         for(auto& post_spike: post_neuron_ptr->spikes)
           if(post_spike > spike)
-            dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * compute_dt_dpostt(spike, *post_neuron_ptr, post_spike);
+            dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * compute_dpostt_dt(spike, *post_neuron_ptr, post_spike);
       return dE_dt;
     }
-    double compute_dt_dpostt(const auto& spike, auto& post_neuron, const auto& post_spike)  // Eq (14)
+    double compute_dpostt_dt(const auto& spike, auto& post_neuron, const auto& post_spike)  // Eq (14)
     {
       return - compute_dpostu_dt(spike, post_neuron, post_spike) / post_neuron.compute_du_dt(post_spike);
     }
@@ -126,10 +132,10 @@ namespace resp {
       double dpostu_dt = 0.;
       for(auto& synapse: post_neuron.incoming_synapses)
         if(&(synapse.pre) == this)  // TODO very ugly
-          dpostu_dt += synapse.weight * epsilond(post_spike - spike - synapse.delay);
+          dpostu_dt -= synapse.weight * epsilond(post_spike - spike - synapse.delay);
       for(auto& ref_post_spike: post_neuron.spikes)
         if(ref_post_spike < post_spike)
-          dpostu_dt += etad(post_spike - ref_post_spike) * compute_dpostu_dt(spike, post_neuron, ref_post_spike);
+          dpostu_dt -= etad(post_spike - ref_post_spike) * compute_dpostt_dt(spike, post_neuron, ref_post_spike);
       return dpostu_dt;
     }
   };
