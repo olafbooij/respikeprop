@@ -59,10 +59,10 @@ namespace resp {
     void forward_propagate(double time)  // Eq (2)
     {
       const double threshold = 1.;
-      if(compute_u > threshold)
+      if(compute_u(time) > threshold)
         fire(time);
     }
-    double compute_u(double time)  // Eq (3)
+    double compute_u(double time) const  // Eq (3) 
     {
       double u;
       for(auto incoming_synapse: incoming_synapses)
