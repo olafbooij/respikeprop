@@ -65,7 +65,7 @@ namespace resp {
     }
     double compute_u(double time) const  // Eq (3) 
     {
-      double u;
+      double u = 0.;
       for(auto incoming_synapse: incoming_synapses)
         for(auto pre_spike: incoming_synapse.pre.spikes)
           u += incoming_synapse.weight * epsilon(time - pre_spike - incoming_synapse.delay);
