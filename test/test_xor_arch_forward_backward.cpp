@@ -27,7 +27,7 @@ namespace resp
 
   auto create_layer(const std::vector<std::string>&& keys)
   {
-    std::vector<neuron> layer;
+    std::vector<Neuron> layer;
     for(const auto& key: keys)
       layer.emplace_back(key);
     return layer;

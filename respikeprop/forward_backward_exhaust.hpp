@@ -5,18 +5,18 @@
 
 namespace resp {
 
-  struct neuron
+  struct Neuron
   {
-    neuron(std::string key = "neuron") : key(key) {}
-    struct synapse
+    Neuron(std::string key_ = "neuron") : key(key_) {}
+    struct Synapse
     {
-      const neuron& pre;  // putting a lot of responsibility on user...
+      const Neuron& pre;  // putting a lot of responsibility on user...
       double weight;
       double delay;
       double delta_weight;
     };
-    std::vector<synapse> incoming_synapses;
-    std::vector<neuron*> post_neuron_ptrs;  // TODO, should perhaps revert to either synapse, or shared_ptrs again
+    std::vector<Synapse> incoming_synapses;
+    std::vector<Neuron*> post_neuron_ptrs;  // TODO, should perhaps revert to either synapse, or shared_ptrs again
     std::vector<double> spikes;  // Eq (1)
     double tau_m = 4.0;
     double tau_s = 2.0;
