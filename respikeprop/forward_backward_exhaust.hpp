@@ -77,10 +77,8 @@ namespace resp {
     void compute_delta_weights(const double learning_rate)  // Eq (9)
     {
       for(auto& synapse: incoming_synapses)
-      {
         for(auto& spike: spikes)
           synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * compute_dt_dw(synapse, spike);
-      }
     }
     double compute_dt_dw(auto& synapse, const auto& spike)  // Eq (10)
     {
@@ -112,7 +110,7 @@ namespace resp {
       if(key == "output")
       {
         if(spike == spikes.front())
-          return -1.;
+          return spike - 3;
         else
           return 0.;
       }
