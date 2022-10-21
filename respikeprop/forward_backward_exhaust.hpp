@@ -103,6 +103,9 @@ namespace resp {
       for(auto& ref_spike: spikes)
         if(ref_spike < spike)
           du_dt += etad(spike - ref_spike);
+      // handlin discontinuity circumstance 1 Sec 3.2
+      if(du_dt < .1)
+        du_dt = .1;
       return du_dt;
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
