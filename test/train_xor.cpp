@@ -93,7 +93,7 @@ int main()
         clear(network);
         for(int input_i = 0; input_i < input_layer.size(); ++input_i)
           input_layer.at(input_i).fire(sample.input.at(input_i));
-        output_layer.at(0).clamped = 16.;
+        output_layer.at(0).clamped = sample.output;
         propagate(network, timestep);
         sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
         for(auto& layer: network)
