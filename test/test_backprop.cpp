@@ -110,11 +110,50 @@ void check_one_input_one_hidden_one_output()
   check_backprop(network, synapse_1);
 }
 
+void check_two_input_two_hidden_one_output()
+{
+  using namespace resp;
+
+  Neuron input_0("input_0");
+  Neuron input_1("input_1");
+  std::vector<Neuron> network;
+  network.reserve(4);
+  Neuron& hidden_0 = network.emplace_back("hidden_0");
+  Neuron& hidden_1 = network.emplace_back("hidden_1");
+  Neuron& output = network.emplace_back("output");
+  hidden_0.incoming_synapses.reserve(2);
+  auto& synapse_i0_h0 = hidden_0.incoming_synapses.emplace_back(input_0, 3.3, 1.1);
+  auto& synapse_i1_h0 = hidden_0.incoming_synapses.emplace_back(input_1, 2.7, 1.2);
+  hidden_1.incoming_synapses.reserve(2);
+  auto& synapse_i0_h1 = hidden_1.incoming_synapses.emplace_back(input_0, 3.0, 1.3);
+  auto& synapse_i1_h1 = hidden_1.incoming_synapses.emplace_back(input_1, 3.7, 0.9);
+  output.incoming_synapses.reserve(2);
+  auto& synapse_h0_o  = output.incoming_synapses.emplace_back(hidden_0, 3., 1.2);
+  auto& synapse_h1_o  = output.incoming_synapses.emplace_back(hidden_1, 3.2, 1.1);
+  input_0.post_neuron_ptrs.emplace_back(&hidden_0);
+  input_0.post_neuron_ptrs.emplace_back(&hidden_1);
+  input_1.post_neuron_ptrs.emplace_back(&hidden_0);
+  input_1.post_neuron_ptrs.emplace_back(&hidden_1);
+  hidden_0.post_neuron_ptrs.emplace_back(&output);
+  hidden_1.post_neuron_ptrs.emplace_back(&output);
+
+  input_0.fire(0.2);
+  input_1.fire(0.1);
+
+  check_backprop(network, synapse_i0_h0);
+  check_backprop(network, synapse_i0_h1);
+  check_backprop(network, synapse_i1_h0);
+  check_backprop(network, synapse_i1_h1);
+  check_backprop(network, synapse_h0_o );
+  check_backprop(network, synapse_h1_o );
+}
+
 int main()
 {
   check_one_input_one_output();
   check_two_input_one_output();
   check_one_input_one_hidden_one_output();
+  check_two_input_two_hidden_one_output();
 
   return 0;
 }
