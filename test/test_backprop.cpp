@@ -13,33 +13,47 @@ void check_backprop(auto& network, auto& synapse)
   auto& output = network.back();
   const double timestep = .0001;
 
+  for(auto& neuron: network)
+    neuron.spikes.clear();
   for(double time = 0.; time < 40.; time += timestep)
     for(auto& neuron: network)
       neuron.forward_propagate(time);
-  //std::cout << output.spikes.size() << " : " << std::endl;
-  //for(auto spike: output.spikes)
-  //  std::cout << spike << std::endl;
+  //for(auto& neuron: network)
+  //{
+  //  std::cout << neuron.key << " spikes before: " << neuron.spikes.size() << " : " << std::endl;
+  //  for(auto spike: neuron.spikes)
+  //    std::cout << spike << std::endl;
+  //}
 
   auto error_before = .5 * pow(output.spikes.at(0) - 3, 2);
 
   const double small = 0.03;
   synapse.weight += small;
   for(auto& neuron: network)
-    output.spikes.clear();
+    neuron.spikes.clear();
   for(double time = 0.; time < 40.; time += timestep)
     for(auto& neuron: network)
       neuron.forward_propagate(time);
-  //std::cout << output.spikes.size() << " : " << std::endl;
-  //for(auto spike: output.spikes)
-  //  std::cout << spike << std::endl;
+  synapse.weight -= small;
+  //for(auto& neuron: network)
+  //{
+  //  std::cout << neuron.key << " spikes after : " << neuron.spikes.size() << " : " << std::endl;
+  //  for(auto spike: neuron.spikes)
+  //    std::cout << spike << std::endl;
+  //}
   auto error_after = .5 * pow(output.spikes.at(0) - 3, 2);
 
   const double learning_rate = 1.;
-  output.compute_delta_weights(learning_rate);
+  for(auto& neuron: network)
+  {
+    for(auto& synapse: neuron.incoming_synapses)
+      synapse.delta_weight = 0.;
+    neuron.compute_delta_weights(learning_rate);
+  }
 
-  //std::cout << error_after - error_before << std::endl;
-  //std::cout << (error_after - error_before) /small << std::endl;
-  //std::cout << - synapse.delta_weight / learning_rate << std::endl;
+  //std::cout << "difference         " << error_after - error_before << std::endl;
+  //std::cout << "d_E / d_w          " << (error_after - error_before) / small << std::endl;
+  //std::cout << "computed d_E / d_w " << - synapse.delta_weight / learning_rate << std::endl;
   assert(fabs((error_after - error_before) / small - (- synapse.delta_weight / learning_rate)) < (timestep / small));
 }
 
@@ -85,14 +99,15 @@ void check_one_input_one_hidden_one_output()
   network.reserve(2);
   Neuron& hidden = network.emplace_back("hidden");
   Neuron& output = network.emplace_back("output");
-  hidden.incoming_synapses.emplace_back(input, 7., 1.);
-  auto& synapse = output.incoming_synapses.emplace_back(hidden, 7., 1.);
+  auto& synapse_0 = hidden.incoming_synapses.emplace_back(input, 7., 1.);
+  auto& synapse_1 = output.incoming_synapses.emplace_back(hidden, 7., 1.);
   input.post_neuron_ptrs.emplace_back(&hidden);
   hidden.post_neuron_ptrs.emplace_back(&output);
 
   input.fire(0.);
 
-  check_backprop(network, synapse);
+  check_backprop(network, synapse_0);
+  check_backprop(network, synapse_1);
 }
 
 int main()
