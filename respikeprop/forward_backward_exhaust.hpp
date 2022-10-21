@@ -16,11 +16,12 @@ namespace resp {
       double delta_weight;
     };
     std::vector<Synapse> incoming_synapses;
-    std::vector<Neuron*> post_neuron_ptrs;  // TODO, should perhaps revert to either synapse, or shared_ptrs again
+    std::vector<Neuron*> post_neuron_ptrs;  // very ugly, should redesign
     std::vector<double> spikes;  // Eq (1)
     double tau_m = 4.0;
     double tau_s = 2.0;
     double tau_r = 20.0;
+    double clamped = 0.;
     std::string key;
 
     auto epsilon(const auto s) const  // Eq (4)
@@ -103,7 +104,7 @@ namespace resp {
       for(auto& ref_spike: spikes)
         if(ref_spike < spike)
           du_dt += etad(spike - ref_spike);
-      // handlin discontinuity circumstance 1 Sec 3.2
+      // handling discontinuity circumstance 1 Sec 3.2
       if(du_dt < .1)
         du_dt = .1;
       return du_dt;
@@ -113,7 +114,7 @@ namespace resp {
       if(key == "output")
       {
         if(spike == spikes.front())
-          return spike - 3;
+          return spike - clamped;
         else
           return 0.;
       }

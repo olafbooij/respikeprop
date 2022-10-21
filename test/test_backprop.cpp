@@ -22,7 +22,7 @@ void check_backprop(auto& network, auto& synapse)
   //    std::cout << spike << std::endl;
   //}
 
-  auto error_before = .5 * pow(output.spikes.at(0) - 3, 2);
+  auto error_before = .5 * pow(output.spikes.at(0) - output.clamped, 2);
 
   const double small = 0.03;
   synapse.weight += small;
@@ -38,7 +38,7 @@ void check_backprop(auto& network, auto& synapse)
   //  for(auto spike: neuron.spikes)
   //    std::cout << spike << std::endl;
   //}
-  auto error_after = .5 * pow(output.spikes.at(0) - 3, 2);
+  auto error_after = .5 * pow(output.spikes.at(0) - output.clamped, 2);
 
   const double learning_rate = 1.;
   for(auto& neuron: network)
@@ -65,6 +65,7 @@ void check_one_input_one_output()
   input.post_neuron_ptrs.emplace_back(&output);
 
   input.fire(0.);
+  output.clamped = 3.;
   check_backprop(network, synapse);
 }
 
@@ -83,6 +84,7 @@ void check_two_input_one_output()
 
   input_0.fire(0.);
   input_1.fire(0.);
+  output.clamped = 3.;
 
   check_backprop(network, synapse);
 }
@@ -102,6 +104,7 @@ void check_one_input_one_hidden_one_output()
   hidden.post_neuron_ptrs.emplace_back(&output);
 
   input.fire(0.);
+  output.clamped = 3.;
 
   check_backprop(network, synapse_0);
   check_backprop(network, synapse_1);
@@ -136,6 +139,7 @@ void check_two_input_two_hidden_one_output()
 
   input_0.fire(0.2);
   input_1.fire(0.1);
+  output.clamped = 3.;
 
   check_backprop(network, synapse_i0_h0);
   check_backprop(network, synapse_i0_h1);
@@ -192,6 +196,7 @@ void check_two_input_two_hidden_one_output_multi_synapse()
   input_1.fire(0.1);
   input_0.fire(0.3);
   input_1.fire(0.4);
+  output.clamped = 3.;
 
   check_backprop(network, synapse_i0_h0_0);
   check_backprop(network, synapse_i0_h0_1);

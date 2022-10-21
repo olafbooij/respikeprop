@@ -70,17 +70,22 @@ int main()
   input_layer.at(0).fire(0.);
   input_layer.at(1).fire(0.);
   input_layer.at(2).fire(0.);
+  output_layer.at(0).clamped = 16.;
 
   const double timestep = .0001;
   
   propagate(network, timestep);
+  for(auto& layer: network)
+    for(auto& n: layer)
+      std::cout << n.key << " " << n.spikes.size() << std::endl;
   
+  std::cout << "spike before: " << output_layer.at(0).spikes.at(0) << std::endl;
   assert(! output_layer.at(0).spikes.empty());
   // fixture
   assert(fabs(output_layer.at(0).spikes.at(5) - 17.3) < 0.2);
 
   // check gradient:
-  auto error_before = .5 * pow(output_layer.at(0).spikes.at(0) - 10.205, 2);
+  auto error_before = .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
 
   // small weight change
   const double small = 0.03;
@@ -92,20 +97,23 @@ int main()
   input_layer.at(1).fire(0.);
   input_layer.at(2).fire(0.);
   propagate(network, timestep);
+  for(auto& layer: network)
+    for(auto& n: layer)
+      std::cout << n.key << " " << n.spikes.size() << std::endl;
 
   // check error change equals weight change
-  auto error_after = .5 * pow(output_layer.at(0).spikes.at(0) - 10.205, 2);
-  std::cout << output_layer.at(0).spikes.at(0) << std::endl;
-  std::cout << error_before << std::endl;
-  std::cout << error_after << std::endl;
-  std::cout << error_after - error_before << std::endl;
-  std::cout << (error_after - error_before) / small << std::endl;
+  auto error_after = .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
+  std::cout << "spike after : " << output_layer.at(0).spikes.at(0) << std::endl;
+  std::cout << "error before: " << error_before << std::endl;
+  std::cout << "error after : " << error_after << std::endl;
+  std::cout << "difference    " << error_after - error_before << std::endl;
+  std::cout << "d_E / d_w     " << (error_after - error_before) / small << std::endl;
 
   //const double learning_rate = 1e-2;
   const double learning_rate = 1.;
-  synapse_changed.delta_weight = 0.01;
+  synapse_changed.delta_weight = 0.;
   hidden_layer.at(2).compute_delta_weights(learning_rate);
-  std::cout << - synapse_changed.delta_weight / learning_rate << std::endl;
+  std::cout << "computed d_E / d_w " << - synapse_changed.delta_weight / learning_rate << std::endl;
   //std::cout << timestep / small << std::endl;
   assert(fabs((error_after - error_before) / small - synapse_changed.delta_weight / learning_rate) < (timestep / small));
 
