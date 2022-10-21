@@ -1,29 +1,27 @@
 #include<iostream>
-#include<random>
-#include<ctime>
 #include<array>
 #include<vector>
-#include<cassert>
+#include<random>
+#include<ctime>
 #include<respikeprop/forward_backward_exhaust.hpp>
 
 namespace resp
 {
 
-  void connect_neurons(auto& pre, auto& post, auto&& random_weight, auto& random_gen)
+  void connect_neurons(auto& pre, auto& post)
   {
     for(auto delay_i = 16; delay_i--;)
     {
-      post.incoming_synapses.emplace_back(pre, random_weight(random_gen), delay_i + 1.0);
+      post.incoming_synapses.emplace_back(pre, .0, delay_i + 1.0);
       pre.post_neuron_ptrs.emplace_back(&post);
     }
   };
 
-  void connect_layers(auto& pre_layer, auto& post_layer, const double min_weight, const double max_weight, auto& random_gen)
+  void connect_layers(auto& pre_layer, auto& post_layer)
   {
-    std::uniform_real_distribution<> random_weight(min_weight, max_weight);
     for(auto& pre: pre_layer)
       for(auto& post: post_layer)
-        connect_neurons(pre, post, random_weight, random_gen);
+        connect_neurons(pre, post);
   };
 
   auto create_layer(const std::vector<std::string>&& keys)
@@ -59,15 +57,10 @@ int main()
                      create_layer({"output"})};
   auto& [input_layer, hidden_layer, output_layer] = network;
 
-  connect_layers(input_layer, hidden_layer, -.5, 1., random_gen);
+  connect_layers(input_layer, hidden_layer);
+  connect_layers(hidden_layer, output_layer);
 
-  // create synapses with only positive weights for 4 hidden neurons
-  for(auto pre_it = hidden_layer.begin(); pre_it != hidden_layer.end() - 1; ++pre_it)
-    connect_neurons(*pre_it, output_layer.at(0), std::uniform_real_distribution<>(0., 1.), random_gen);
-  // and with only negative weights for the last hidden neuron
-  connect_neurons(hidden_layer.back(), output_layer.front(), std::uniform_real_distribution<>(-.5, 0.), random_gen);
-
-  const double timestep = .01;
+  const double timestep = .1;
   const double learning_rate = 1e-2;
   
   struct sample
@@ -88,41 +81,37 @@ int main()
       for(auto& synapse: n.incoming_synapses) 
         synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
     for(auto& synapse: output_layer.front().incoming_synapses)
-      if(&(synapse.pre) == &(hidden_layer.back()))
+      if(synapse.pre.key == "hidden 5")
         synapse.weight = std::uniform_real_distribution<>(-.5, 0.)(random_gen);
       else
         synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
-  // and with only negative weights for the last hidden neuron
-  for(int epoch = 0; epoch < 100; ++epoch)
-  {
-    double sum_squared_error = 0;
-    for(auto sample: dataset)
+    for(int epoch = 0; epoch < 100; ++epoch)
     {
-  // first XOR pattern
-      clear(network);
-      for(int input_i = 0; input_i < input_layer.size(); ++input_i)
-        input_layer.at(input_i).fire(sample.input.at(input_i));
-      output_layer.at(0).clamped = 16.;
-      propagate(network, timestep);
-      //std::cout << .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2) << std::endl;
-      sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
-      for(auto& layer: network)
-        for(auto& n: layer)
-        {
-          n.compute_delta_weights(learning_rate);
-          for(auto& synapse: n.incoming_synapses) 
+      double sum_squared_error = 0;
+      for(auto sample: dataset)
+      {
+        clear(network);
+        for(int input_i = 0; input_i < input_layer.size(); ++input_i)
+          input_layer.at(input_i).fire(sample.input.at(input_i));
+        output_layer.at(0).clamped = 16.;
+        propagate(network, timestep);
+        sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
+        for(auto& layer: network)
+          for(auto& n: layer)
           {
-            synapse.weight += synapse.delta_weight;
-            synapse.delta_weight = 0.;
+            n.compute_delta_weights(learning_rate);
+            for(auto& synapse: n.incoming_synapses)
+            {
+              synapse.weight += synapse.delta_weight;
+              synapse.delta_weight = 0.;
+            }
           }
-        }
+      }
+      std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
+      if(sum_squared_error < 1.0)
+        break;
     }
-    std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
-    if(sum_squared_error < 1.0)
-      break;
   }
-  }
-
 
   return 0;
 }
