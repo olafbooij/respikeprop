@@ -146,6 +146,16 @@ void check_two_input_two_hidden_one_output()
   check_backprop(network, synapse_i1_h1);
   check_backprop(network, synapse_h0_o );
   check_backprop(network, synapse_h1_o );
+
+  input_0.fire(0.3);
+  input_1.fire(0.4);
+
+  check_backprop(network, synapse_i0_h0);
+  check_backprop(network, synapse_i0_h1);
+  check_backprop(network, synapse_i1_h0);
+  check_backprop(network, synapse_i1_h1);
+  check_backprop(network, synapse_h0_o );
+  check_backprop(network, synapse_h1_o );
 }
 
 int main()
