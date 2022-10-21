@@ -10,6 +10,11 @@ namespace resp {
     Neuron(std::string key_ = "neuron") : key(key_) {}
     struct Synapse
     {
+      Synapse(const Neuron& pre_, double weight_, double delay_)
+      : pre(pre_)
+      , weight(weight_)
+      , delay(delay_)
+      , delta_weight(0.) {}
       const Neuron& pre;  // putting a lot of responsibility on user...
       double weight;
       double delay;
