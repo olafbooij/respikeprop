@@ -46,8 +46,8 @@ void check_backprop(auto& network, auto& synapse)
   const double learning_rate = 1.;
   for(auto& neuron: network)
   {
-    for(auto& synapse: neuron.incoming_synapses)
-      synapse.delta_weight = 0.;
+    for(auto& in_synapse: neuron.incoming_synapses)
+      in_synapse.delta_weight = 0.;
     neuron.compute_delta_weights(learning_rate);
   }
 
