@@ -5,9 +5,6 @@
 #include<cassert>
 #include<respikeprop/forward_backward_exhaust.hpp>
 
-namespace resp
-{}
-
 void check_backprop(auto& network, auto& synapse)
 {
   auto& output = network.back();
@@ -54,7 +51,7 @@ void check_backprop(auto& network, auto& synapse)
   //std::cout << "difference         " << error_after - error_before << std::endl;
   //std::cout << "d_E / d_w          " << (error_after - error_before) / small << std::endl;
   //std::cout << "computed d_E / d_w " << - synapse.delta_weight / learning_rate << std::endl;
-  assert(fabs((error_after - error_before) / small - (- synapse.delta_weight / learning_rate)) < (timestep / small));
+  assert(fabs((error_after - error_before) / small - (- synapse.delta_weight / learning_rate)) < (timestep / small * 2));
 }
 
 void check_one_input_one_output()
@@ -117,7 +114,7 @@ void check_two_input_two_hidden_one_output()
   Neuron input_0("input_0");
   Neuron input_1("input_1");
   std::vector<Neuron> network;
-  network.reserve(4);
+  network.reserve(3);
   Neuron& hidden_0 = network.emplace_back("hidden_0");
   Neuron& hidden_1 = network.emplace_back("hidden_1");
   Neuron& output = network.emplace_back("output");
@@ -158,12 +155,65 @@ void check_two_input_two_hidden_one_output()
   check_backprop(network, synapse_h1_o );
 }
 
+void check_two_input_two_hidden_one_output_multi_synapse()
+{
+  using namespace resp;
+
+  Neuron input_0("input_0");
+  Neuron input_1("input_1");
+  std::vector<Neuron> network;
+  network.reserve(3);
+  Neuron& hidden_0 = network.emplace_back("hidden_0");
+  Neuron& hidden_1 = network.emplace_back("hidden_1");
+  Neuron& output = network.emplace_back("output");
+  hidden_0.incoming_synapses.reserve(4);
+  auto& synapse_i0_h0_0 = hidden_0.incoming_synapses.emplace_back(input_0, 1.6, 1.12);
+  auto& synapse_i0_h0_1 = hidden_0.incoming_synapses.emplace_back(input_0, 1.8, 1.20);
+  auto& synapse_i1_h0_0 = hidden_0.incoming_synapses.emplace_back(input_1, 1.0, 1.19);
+  auto& synapse_i1_h0_1 = hidden_0.incoming_synapses.emplace_back(input_1, 1.7, 1.29);
+  hidden_1.incoming_synapses.reserve(4);
+  auto& synapse_i0_h1_0 = hidden_1.incoming_synapses.emplace_back(input_0, 1.0, 1.32);
+  auto& synapse_i0_h1_1 = hidden_1.incoming_synapses.emplace_back(input_0, 4.0, 1.39);
+  auto& synapse_i1_h1_0 = hidden_1.incoming_synapses.emplace_back(input_1,-3.7, 0.90);
+  auto& synapse_i1_h1_1 = hidden_1.incoming_synapses.emplace_back(input_1, 6.7, 0.98);
+  output.incoming_synapses.reserve(4);
+  auto& synapse_h0_o_0  = output.incoming_synapses.emplace_back(hidden_0, 5., 1.23);
+  auto& synapse_h0_o_1  = output.incoming_synapses.emplace_back(hidden_0, 4., 1.20);
+  auto& synapse_h1_o_0  = output.incoming_synapses.emplace_back(hidden_1,-1.2, 1.12);
+  auto& synapse_h1_o_1  = output.incoming_synapses.emplace_back(hidden_1,-0.2, 1.3);
+  input_0.post_neuron_ptrs.emplace_back(&hidden_0);
+  input_0.post_neuron_ptrs.emplace_back(&hidden_1);
+  input_1.post_neuron_ptrs.emplace_back(&hidden_0);
+  input_1.post_neuron_ptrs.emplace_back(&hidden_1);
+  hidden_0.post_neuron_ptrs.emplace_back(&output);
+  hidden_1.post_neuron_ptrs.emplace_back(&output);
+
+  input_0.fire(0.2);
+  input_1.fire(0.1);
+  input_0.fire(0.3);
+  input_1.fire(0.4);
+
+  check_backprop(network, synapse_i0_h0_0);
+  check_backprop(network, synapse_i0_h0_1);
+  check_backprop(network, synapse_i0_h1_0);
+  check_backprop(network, synapse_i0_h1_1);
+  check_backprop(network, synapse_i1_h0_0);
+  check_backprop(network, synapse_i1_h0_1);
+  check_backprop(network, synapse_i1_h1_0);
+  check_backprop(network, synapse_i1_h1_1);
+  check_backprop(network, synapse_h0_o_0 );
+  check_backprop(network, synapse_h0_o_1 );
+  check_backprop(network, synapse_h1_o_0 );
+  check_backprop(network, synapse_h1_o_1 );
+}
+
 int main()
 {
   check_one_input_one_output();
   check_two_input_one_output();
   check_one_input_one_hidden_one_output();
   check_two_input_two_hidden_one_output();
+  check_two_input_two_hidden_one_output_multi_synapse();
 
   return 0;
 }
