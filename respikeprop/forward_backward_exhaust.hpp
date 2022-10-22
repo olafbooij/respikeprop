@@ -10,7 +10,7 @@ namespace resp {
     Neuron(std::string key_ = "neuron") : key(key_) {}
     struct Synapse
     {
-      Synapse(const Neuron& pre_, double weight_, double delay_)
+      Synapse(const Neuron& pre_, double weight_, double delay_) noexcept
       : pre(pre_)
       , weight(weight_)
       , delay(delay_)
