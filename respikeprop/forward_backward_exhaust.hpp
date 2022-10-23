@@ -130,13 +130,10 @@ namespace resp {
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {
-      if(key == "output")
-      {
+      if(clamped > 0.)
         if(spike == spikes.front())
           return spike - clamped;
-        else
-          return 0.;
-      }
+
       double dE_dt = 0.;
       for(auto post_neuron_ptr: post_neuron_ptrs)
         for(auto& post_spike: post_neuron_ptr->spikes)
