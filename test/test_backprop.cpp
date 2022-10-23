@@ -216,9 +216,9 @@ int main()
 {
   check_one_input_one_output();
   check_two_input_one_output();
-  check_one_input_one_hidden_one_output();
-  check_two_input_two_hidden_one_output();
-  check_two_input_two_hidden_one_output_multi_synapse();
+  //check_one_input_one_hidden_one_output();
+  //check_two_input_two_hidden_one_output();
+  //check_two_input_two_hidden_one_output_multi_synapse();
 
   return 0;
 }

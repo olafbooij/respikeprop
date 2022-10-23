@@ -5,24 +5,39 @@
 
 namespace resp {
 
+  // Straightforward implementation of Spikeprop with multiple spikes per
+  // neuron, with links to equations from the paper:
+  // An implementation of "A gradient descent rule for spiking neurons emitting
+  // multiple spikes", Olaf Booij, Hieu tat Nguyen, Information Processing
+  // Letters, Volume 95, Issue 6, 30 September 2005, Pages 552-558.
+  //
+  // Forward propagation is not event-based and thus compute time in the order
+  // of time-steps.
+  // Backpropagation in this implementation is very compute heavy.
+  // Network connectivity is implemented using raw-pointers, leaving
+  // responsibility of memory management with the user.
+
   struct Neuron
   {
     Neuron(std::string key_ = "neuron") : key(key_) {}
     struct Synapse
     {
       Synapse(const Neuron& pre_, double weight_, double delay_) noexcept
-      : pre(pre_)
+      : pre(&pre_)  // taking raw address
       , weight(weight_)
       , delay(delay_)
       , delta_weight(0.) {}
-      const Neuron& pre;  // putting a lot of responsibility on user...
+      const Neuron* pre;  // putting a lot of responsibility on user...
       double weight;
       double delay;
       double delta_weight;
     };
     std::vector<Synapse> incoming_synapses;
-    std::vector<Neuron*> post_neuron_ptrs;  // very ugly, should redesign
+    std::vector<Neuron*> post_neuron_ptrs;
     std::vector<double> spikes;  // Eq (1)
+    // The following settings are taken from the thesis "Temporal Pattern
+    // Classification using Spiking Neural Networks" which differ from the
+    // paper.
     double tau_m = 4.0;
     double tau_s = 2.0;
     double tau_r = 20.0;
@@ -69,11 +84,11 @@ namespace resp {
       if(compute_u(time) > threshold)
         fire(time);
     }
-    double compute_u(double time) const  // Eq (3) 
+    double compute_u(double time) const  // Eq (3)
     {
       double u = 0.;
       for(auto incoming_synapse: incoming_synapses)
-        for(auto pre_spike: incoming_synapse.pre.spikes)
+        for(auto pre_spike: incoming_synapse.pre->spikes)
           u += incoming_synapse.weight * epsilon(time - pre_spike - incoming_synapse.delay);
       for(auto ref_spike: spikes)
         u += eta(time - ref_spike);
@@ -93,7 +108,7 @@ namespace resp {
     double compute_du_dw(auto& synapse, const auto& spike)  // Eq (11)
     {
       double du_dw = 0.;
-      for(auto& pre_spike: synapse.pre.spikes)
+      for(auto& pre_spike: synapse.pre->spikes)
         du_dw += epsilon(spike - pre_spike - synapse.delay);
       for(auto& ref_spike: spikes)
         if(ref_spike < spike)
@@ -104,13 +119,12 @@ namespace resp {
     {
       double du_dt = 0.;
       for(auto& synapse: incoming_synapses)
-        for(auto& pre_spike: synapse.pre.spikes)
+        for(auto& pre_spike: synapse.pre->spikes)
           du_dt += synapse.weight * epsilond(spike - pre_spike - synapse.delay);
       for(auto& ref_spike: spikes)
         if(ref_spike < spike)
           du_dt += etad(spike - ref_spike);
-      // handling discontinuity circumstance 1 Sec 3.2
-      if(du_dt < .1)
+      if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
         du_dt = .1;
       return du_dt;
     }
@@ -138,7 +152,7 @@ namespace resp {
     {
       double dpostu_dt = 0.;
       for(auto& synapse: post_neuron.incoming_synapses)
-        if(&(synapse.pre) == this)  // TODO very ugly
+        if(synapse.pre == this)
           dpostu_dt -= synapse.weight * epsilond(post_spike - spike - synapse.delay);
       for(auto& ref_post_spike: post_neuron.spikes)
         if(ref_post_spike < post_spike)
