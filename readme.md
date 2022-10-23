@@ -9,5 +9,5 @@ implementation was not(!) used for the experiments in the paper.
 
 
 The name of this repository, ReSpikeProp, is to stress the fact that
-spiking neurons can be connected in a recurrent manner, without any adjusment
+spiking neurons can be connected in a recurrent manner, without any adjustment
 to the backpropagation method.
