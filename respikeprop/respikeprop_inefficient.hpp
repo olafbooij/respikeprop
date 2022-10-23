@@ -22,7 +22,7 @@ namespace resp {
     Neuron(std::string key_ = "neuron") : key(key_) {}
     struct Synapse
     {
-      Synapse(const Neuron& pre_, double weight_, double delay_) noexcept
+      Synapse(const Neuron& pre_, double weight_, double delay_)
       : pre(&pre_)  // taking raw address
       , weight(weight_)
       , delay(delay_)
