@@ -95,7 +95,7 @@ int main()
       else
         synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
     // Main training loop
-    for(int epoch = 0; epoch < 100; ++epoch)
+    for(int epoch = 0; epoch < 1000; ++epoch)
     {
       double sum_squared_error = 0;
       for(auto sample: dataset)
