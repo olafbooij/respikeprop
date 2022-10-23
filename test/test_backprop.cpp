@@ -1,9 +1,7 @@
 #include<iostream>
-#include<random>
-#include<array>
 #include<vector>
 #include<cassert>
-#include<respikeprop/forward_backward_exhaust.hpp>
+#include<respikeprop/respikeprop_inefficient.hpp>
 
 // These tests check the gradient (d Error / d weight) used for gradient
 // descent by comparing it against a numerically computed gradient.

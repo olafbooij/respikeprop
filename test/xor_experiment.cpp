@@ -3,10 +3,9 @@
 #include<vector>
 #include<random>
 #include<ctime>
-#include<respikeprop/forward_backward_exhaust.hpp>
+#include<respikeprop/respikeprop_inefficient.hpp>
 
-// Training XOR 
-
+// Training a network to learn XOR as described in Section 4.1.
 
 // Some helpfull functions
 namespace resp
