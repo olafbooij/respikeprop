@@ -37,6 +37,7 @@ namespace resp {
     struct Spike
     {
       double time;
+      double du_dt;
     };
     std::vector<Spike> spikes;  // Eq (1)
     // The following settings are taken from the thesis "Temporal Pattern
@@ -79,7 +80,7 @@ namespace resp {
 
     void fire(double time)
     {
-      spikes.emplace_back(time);
+      spikes.emplace_back(time, .0);
     }
 
     void forward_propagate(double time)  // Eq (2)
@@ -92,7 +93,20 @@ namespace resp {
       for(auto ref_spike: spikes)
         u += eta(time - ref_spike.time);
       if(u > threshold)
-        spikes.emplace_back(time);
+      {
+        // store some thingies
+        double du_dt = 0.;
+        {
+          for(auto& synapse: incoming_synapses)
+            for(auto& pre_spike: synapse.pre->spikes)
+              du_dt += synapse.weight * epsilond(time - pre_spike.time - synapse.delay);
+          for(auto& ref_spike: spikes)
+            du_dt += etad(time - ref_spike.time);
+          if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
+            du_dt = .1;
+        }
+        auto& spike = spikes.emplace_back(time, du_dt);
+      }
     }
 
     void compute_delta_weights(const double learning_rate)  // Eq (9)
@@ -103,7 +117,7 @@ namespace resp {
     }
     double compute_dt_dw(auto& synapse, const auto& spike)  // Eq (10)
     {
-      return - compute_du_dw(synapse, spike) / compute_du_dt(spike);
+      return - compute_du_dw(synapse, spike) / spike.du_dt;
     }
     double compute_du_dw(auto& synapse, const auto& spike)  // Eq (11)
     {
@@ -114,19 +128,6 @@ namespace resp {
         if(ref_spike.time < spike.time)
           du_dw += - etad(spike.time - ref_spike.time) * compute_dt_dw(synapse, ref_spike);
       return du_dw;
-    }
-    double compute_du_dt(const auto& spike)  // Eq (12)
-    {
-      double du_dt = 0.;
-      for(auto& synapse: incoming_synapses)
-        for(auto& pre_spike: synapse.pre->spikes)
-          du_dt += synapse.weight * epsilond(spike.time - pre_spike.time - synapse.delay);
-      for(auto& ref_spike: spikes)
-        if(ref_spike.time < spike.time)
-          du_dt += etad(spike.time - ref_spike.time);
-      if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
-        du_dt = .1;
-      return du_dt;
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {
@@ -143,7 +144,7 @@ namespace resp {
     }
     double compute_dpostt_dt(const auto& spike, auto& post_neuron, const auto& post_spike)  // Eq (14)
     {
-      return - compute_dpostu_dt(spike, post_neuron, post_spike) / post_neuron.compute_du_dt(post_spike);
+      return - compute_dpostu_dt(spike, post_neuron, post_spike) / post_spike.du_dt;
     }
     double compute_dpostu_dt(const auto& spike, auto& post_neuron, const auto& post_spike)  // Eq (15)
     {
