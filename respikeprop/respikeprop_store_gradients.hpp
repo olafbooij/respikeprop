@@ -2,6 +2,7 @@
 
 #include<vector>
 #include<cmath>
+#include<range/v3/view/zip.hpp>
 
 namespace resp {
 
@@ -31,6 +32,7 @@ namespace resp {
       double weight;
       double delay;
       double delta_weight;
+      std::vector<double> dt_dws;  // same order as post->spikes
     };
     std::vector<Synapse> incoming_synapses;
     std::vector<Neuron*> post_neuron_ptrs;
@@ -104,6 +106,18 @@ namespace resp {
             du_dt += etad(time - ref_spike.time);
           if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
             du_dt = .1;
+        }
+        for(auto& synapse: incoming_synapses)
+        {
+          double du_dw = 0.;
+          {
+            for(auto& pre_spike: synapse.pre->spikes)
+              du_dw += epsilon(time - pre_spike.time - synapse.delay);
+            for(const auto& [ref_spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
+              du_dw += - etad(time - ref_spike.time) * dt_dw;
+          }
+          double dt_dw = - du_dw / du_dt;
+          synapse.dt_dws.emplace_back(dt_dw);
         }
         auto& spike = spikes.emplace_back(time, du_dt);
       }
