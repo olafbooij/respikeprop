@@ -34,7 +34,11 @@ namespace resp {
     };
     std::vector<Synapse> incoming_synapses;
     std::vector<Neuron*> post_neuron_ptrs;
-    std::vector<double> spikes;  // Eq (1)
+    struct Spike
+    {
+      double time;
+    };
+    std::vector<Spike> spikes;  // Eq (1)
     // The following settings are taken from the thesis "Temporal Pattern
     // Classification using Spiking Neural Networks" which differ from the
     // paper.
@@ -81,18 +85,14 @@ namespace resp {
     void forward_propagate(double time)  // Eq (2)
     {
       const double threshold = 1.;
-      if(compute_u(time) > threshold)
-        fire(time);
-    }
-    double compute_u(double time) const  // Eq (3)
-    {
       double u = 0.;
       for(auto incoming_synapse: incoming_synapses)
         for(auto pre_spike: incoming_synapse.pre->spikes)
-          u += incoming_synapse.weight * epsilon(time - pre_spike - incoming_synapse.delay);
+          u += incoming_synapse.weight * epsilon(time - pre_spike.time - incoming_synapse.delay);
       for(auto ref_spike: spikes)
-        u += eta(time - ref_spike);
-      return u;
+        u += eta(time - ref_spike.time);
+      if(u > threshold)
+        spikes.emplace_back(time);
     }
 
     void compute_delta_weights(const double learning_rate)  // Eq (9)
@@ -109,10 +109,10 @@ namespace resp {
     {
       double du_dw = 0.;
       for(auto& pre_spike: synapse.pre->spikes)
-        du_dw += epsilon(spike - pre_spike - synapse.delay);
+        du_dw += epsilon(spike.time - pre_spike.time - synapse.delay);
       for(auto& ref_spike: spikes)
-        if(ref_spike < spike)
-          du_dw += - etad(spike - ref_spike) * compute_dt_dw(synapse, ref_spike);
+        if(ref_spike.time < spike.time)
+          du_dw += - etad(spike.time - ref_spike.time) * compute_dt_dw(synapse, ref_spike);
       return du_dw;
     }
     double compute_du_dt(const auto& spike)  // Eq (12)
@@ -120,10 +120,10 @@ namespace resp {
       double du_dt = 0.;
       for(auto& synapse: incoming_synapses)
         for(auto& pre_spike: synapse.pre->spikes)
-          du_dt += synapse.weight * epsilond(spike - pre_spike - synapse.delay);
+          du_dt += synapse.weight * epsilond(spike.time - pre_spike.time - synapse.delay);
       for(auto& ref_spike: spikes)
-        if(ref_spike < spike)
-          du_dt += etad(spike - ref_spike);
+        if(ref_spike.time < spike.time)
+          du_dt += etad(spike.time - ref_spike.time);
       if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
         du_dt = .1;
       return du_dt;
@@ -131,13 +131,13 @@ namespace resp {
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {
       if(clamped > 0.)
-        if(spike == spikes.front())
-          return spike - clamped;
+        if(spike.time == spikes.front().time)
+          return spike.time - clamped;
 
       double dE_dt = 0.;
       for(auto post_neuron_ptr: post_neuron_ptrs)
         for(auto& post_spike: post_neuron_ptr->spikes)
-          if(post_spike > spike)
+          if(post_spike.time > spike.time)
             dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * compute_dpostt_dt(spike, *post_neuron_ptr, post_spike);
       return dE_dt;
     }
@@ -150,10 +150,10 @@ namespace resp {
       double dpostu_dt = 0.;
       for(auto& synapse: post_neuron.incoming_synapses)
         if(synapse.pre == this)
-          dpostu_dt -= synapse.weight * epsilond(post_spike - spike - synapse.delay);
+          dpostu_dt -= synapse.weight * epsilond(post_spike.time - spike.time - synapse.delay);
       for(auto& ref_post_spike: post_neuron.spikes)
-        if(ref_post_spike < post_spike)
-          dpostu_dt -= etad(post_spike - ref_post_spike) * compute_dpostt_dt(spike, post_neuron, ref_post_spike);
+        if(ref_post_spike.time < post_spike.time)
+          dpostu_dt -= etad(post_spike.time - ref_post_spike.time) * compute_dpostt_dt(spike, post_neuron, ref_post_spike);
       return dpostu_dt;
     }
   };

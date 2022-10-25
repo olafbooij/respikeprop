@@ -1,7 +1,7 @@
 #include<iostream>
 #include<vector>
 #include<cassert>
-#include<respikeprop/respikeprop_inefficient.hpp>
+#include<respikeprop/respikeprop_store_gradients.hpp>
 
 // These tests check the gradient (d Error / d weight) used for gradient
 // descent by comparing it against a numerically computed gradient.
@@ -25,10 +25,10 @@ void check_backprop(auto& network, auto& synapse)
   //{
   //  std::cout << neuron.key << " spikes before: " << neuron.spikes.size() << " : " << std::endl;
   //  for(auto spike: neuron.spikes)
-  //    std::cout << spike << std::endl;
+  //    std::cout << spike.time << std::endl;
   //}
 
-  auto error_before = .5 * pow(output.spikes.at(0) - output.clamped, 2);
+  auto error_before = .5 * pow(output.spikes.at(0).time - output.clamped, 2);
 
   const double small = 0.03;
   synapse.weight += small;
@@ -42,9 +42,9 @@ void check_backprop(auto& network, auto& synapse)
   //{
   //  std::cout << neuron.key << " spikes after : " << neuron.spikes.size() << " : " << std::endl;
   //  for(auto spike: neuron.spikes)
-  //    std::cout << spike << std::endl;
+  //    std::cout << spike.time << std::endl;
   //}
-  auto error_after = .5 * pow(output.spikes.at(0) - output.clamped, 2);
+  auto error_after = .5 * pow(output.spikes.at(0).time - output.clamped, 2);
 
   const double learning_rate = 1.;
   for(auto& neuron: network)

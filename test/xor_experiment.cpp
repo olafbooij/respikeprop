@@ -3,7 +3,7 @@
 #include<vector>
 #include<random>
 #include<ctime>
-#include<respikeprop/respikeprop_inefficient.hpp>
+#include<respikeprop/respikeprop_store_gradients.hpp>
 
 // Training a network to learn XOR as described in Section 4.1.
 
@@ -108,7 +108,7 @@ int main()
         // Forward propagation
         propagate(network, 40., timestep);
         // Backward propagation and changing weights (no batch-mode)
-        sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
+        sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0).time - output_layer.at(0).clamped, 2);
         for(auto& layer: network)
           for(auto& n: layer)
           {
