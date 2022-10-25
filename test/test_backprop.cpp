@@ -17,7 +17,7 @@ void check_backprop(auto& network, auto& synapse)
   const double timestep = .0001;
 
   for(auto& neuron: network)
-    neuron.spikes.clear();
+    neuron.clear();
   for(double time = 0.; time < 40.; time += timestep)
     for(auto& neuron: network)
       neuron.forward_propagate(time);
@@ -33,7 +33,7 @@ void check_backprop(auto& network, auto& synapse)
   const double small = 0.03;
   synapse.weight += small;
   for(auto& neuron: network)
-    neuron.spikes.clear();
+    neuron.clear();
   for(double time = 0.; time < 40.; time += timestep)
     for(auto& neuron: network)
       neuron.forward_propagate(time);

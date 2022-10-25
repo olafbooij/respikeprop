@@ -51,6 +51,12 @@ namespace resp {
     double clamped = 0.;
     std::string key;
 
+    void clear()
+    {
+      spikes.clear();
+      for(auto& incoming_synapse: incoming_synapses)
+        incoming_synapse.dt_dws.clear();
+    }
     auto epsilon(const auto s) const  // Eq (4)
     {
       if(s < 0.)
@@ -126,22 +132,8 @@ namespace resp {
     void compute_delta_weights(const double learning_rate)  // Eq (9)
     {
       for(auto& synapse: incoming_synapses)
-        for(auto& spike: spikes)
-          synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * compute_dt_dw(synapse, spike);
-    }
-    double compute_dt_dw(auto& synapse, const auto& spike)  // Eq (10)
-    {
-      return - compute_du_dw(synapse, spike) / spike.du_dt;
-    }
-    double compute_du_dw(auto& synapse, const auto& spike)  // Eq (11)
-    {
-      double du_dw = 0.;
-      for(auto& pre_spike: synapse.pre->spikes)
-        du_dw += epsilon(spike.time - pre_spike.time - synapse.delay);
-      for(auto& ref_spike: spikes)
-        if(ref_spike.time < spike.time)
-          du_dw += - etad(spike.time - ref_spike.time) * compute_dt_dw(synapse, ref_spike);
-      return du_dw;
+        for(const auto& [spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
+          synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * dt_dw;
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {

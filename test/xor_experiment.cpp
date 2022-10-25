@@ -46,7 +46,7 @@ namespace resp
   {
     for(auto& layer: network)
       for(auto& n: layer)
-        n.spikes.clear();
+        n.clear();
   }
 
 }
