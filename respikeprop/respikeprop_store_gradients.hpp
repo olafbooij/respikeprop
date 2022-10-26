@@ -71,7 +71,9 @@ namespace resp {
     };
     auto eta(const auto s) const  // Eq (5)
     {
-      if(s < 0.) // CHECKME, should this be =< 0.
+      if(s == 0)
+        std::cout << "WARNING, take eta(0)" << std::endl;
+      if(s < 0.)
         return 0.;
       else
         return - exp(-s / tau_r);
@@ -85,7 +87,9 @@ namespace resp {
     };
     auto etad(const auto s)
     {
-      if(s < 0.) // CHECKME, should this be =< 0.
+      if(s == 0)
+        std::cout << "WARNING, take etad(0)" << std::endl;
+      if(s < 0.)
         return 0.;
       else
         return exp(-s / tau_r) / tau_r;
@@ -130,23 +134,20 @@ namespace resp {
           synapse.dt_dws.emplace_back(dt_dw);
         }
 
-        //double compute_dpostu_dt(const auto& spike, auto& post_neuron, const auto& post_spike)  // Eq (15)
         {
-          //double dpostu_dt = 0.;
           for(auto& synapse: incoming_synapses)
             for(auto& pre_spike: synapse.pre->spikes)
             {
               // find out which post neuron is this...
               int index = find(synapse.pre->post_neuron_ptrs.begin(), synapse.pre->post_neuron_ptrs.end(), this) - synapse.pre->post_neuron_ptrs.begin(); // very ugly... let's hope this simplifies later...
-              //std::cout << index << " " << synapse.pre->post_neuron_ptrs.size() << " " << pre_spike.dpostt_dts.size() << std::endl;
               if(pre_spike.dpostt_dts.empty())
                 pre_spike.dpostt_dts.resize(synapse.pre->post_neuron_ptrs.size());
               // which post spike is time -> the last one ... well... might not have been added yet...
               if(pre_spike.dpostt_dts.at(index).size() < spikes.size() + 1) // + 1, because spike was not added yet
               {
                 double dpostu_dt = 0.;
-                for(const auto& [ref_spike, dpostt_dt]: ranges::views::zip(spikes, pre_spike.dpostt_dts.at(index)))
-                  dpostu_dt -= etad(time - ref_spike.time) * dpostt_dt;
+                for(const auto& [ref_spike, ref_dpostt_dt]: ranges::views::zip(spikes, pre_spike.dpostt_dts.at(index)))
+                  dpostu_dt -= etad(time - ref_spike.time) * ref_dpostt_dt;
                 double dpostt_dt = - dpostu_dt / du_dt;
                 pre_spike.dpostt_dts.at(index).emplace_back(dpostt_dt);
               }
@@ -174,30 +175,9 @@ namespace resp {
       for(const auto& [post_neuron_ptr, dpostt_dts]: ranges::views::zip(post_neuron_ptrs, spike.dpostt_dts))
         for(const auto& [post_spike, dpostt_dt]: ranges::views::zip(post_neuron_ptr->spikes, dpostt_dts))
           if(post_spike.time > spike.time)
-          {
-            std::cout << compute_dpostt_dt(spike, *post_neuron_ptr, post_spike) << " ";
-            std::cout << dpostt_dt << std::endl;
-
-            dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * compute_dpostt_dt(spike, *post_neuron_ptr, post_spike);
-          }
+            dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * dpostt_dt;
       return dE_dt;
     }
-    double compute_dpostt_dt(const auto& spike, auto& post_neuron, const auto& post_spike)  // Eq (14)
-    {
-      return - compute_dpostu_dt(spike, post_neuron, post_spike) / post_spike.du_dt;
-    }
-    double compute_dpostu_dt(const auto& spike, auto& post_neuron, const auto& post_spike)  // Eq (15)
-    {
-      double dpostu_dt = 0.;
-      for(auto& synapse: post_neuron.incoming_synapses)
-        if(synapse.pre == this)
-          dpostu_dt -= synapse.weight * epsilond(post_spike.time - spike.time - synapse.delay);
-      for(auto& ref_post_spike: post_neuron.spikes)
-        if(ref_post_spike.time < post_spike.time)
-          dpostu_dt -= etad(post_spike.time - ref_post_spike.time) * compute_dpostt_dt(spike, post_neuron, ref_post_spike);
-      return dpostu_dt;
-    }
-  };
 
 }
 
