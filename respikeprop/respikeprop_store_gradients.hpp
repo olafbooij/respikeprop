@@ -178,6 +178,6 @@ namespace resp {
             dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * dpostt_dt;
       return dE_dt;
     }
-
+  };
 }
 
