@@ -71,8 +71,6 @@ namespace resp {
     };
     auto eta(const auto s) const  // Eq (5)
     {
-      if(s == 0)
-        std::cout << "WARNING, take eta(0)" << std::endl;
       if(s < 0.)
         return 0.;
       else
@@ -87,8 +85,6 @@ namespace resp {
     };
     auto etad(const auto s)
     {
-      if(s == 0)
-        std::cout << "WARNING, take etad(0)" << std::endl;
       if(s < 0.)
         return 0.;
       else
@@ -104,19 +100,20 @@ namespace resp {
     {
       const double threshold = 1.;
       double u = 0.;
-      for(auto incoming_synapse: incoming_synapses)
-        for(auto pre_spike: incoming_synapse.pre->spikes)
+      for(const auto& incoming_synapse: incoming_synapses)
+        for(const auto& pre_spike: incoming_synapse.pre->spikes)
           u += incoming_synapse.weight * epsilon(time - pre_spike.time - incoming_synapse.delay);
-      for(auto ref_spike: spikes)
+      for(const auto& ref_spike: spikes)
         u += eta(time - ref_spike.time);
+
       if(u > threshold)
       {
         double du_dt = 0.;
         {
-          for(auto& synapse: incoming_synapses)
-            for(auto& pre_spike: synapse.pre->spikes)
+          for(const auto& synapse: incoming_synapses)
+            for(const auto& pre_spike: synapse.pre->spikes)
               du_dt += synapse.weight * epsilond(time - pre_spike.time - synapse.delay);
-          for(auto& ref_spike: spikes)
+          for(const auto& ref_spike: spikes)
             du_dt += etad(time - ref_spike.time);
           if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
             du_dt = .1;
@@ -125,7 +122,7 @@ namespace resp {
         {
           double du_dw = 0.;
           {
-            for(auto& pre_spike: synapse.pre->spikes)
+            for(const auto& pre_spike: synapse.pre->spikes)
               du_dw += epsilon(time - pre_spike.time - synapse.delay);
             for(const auto& [ref_spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
               du_dw += - etad(time - ref_spike.time) * dt_dw;
@@ -155,7 +152,7 @@ namespace resp {
             }
         }
 
-        auto& spike = spikes.emplace_back(time, du_dt);
+        spikes.emplace_back(time, du_dt);
       }
     }
 
