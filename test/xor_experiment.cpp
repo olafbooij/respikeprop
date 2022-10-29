@@ -82,8 +82,9 @@ int main()
     {{6., 6., 0.}, 16.}
   }};
 
+  int avg_nr_of_epochs = 0;
   // Multiple trials for statistics
-  for(int trial = 0; trial < 100; ++trial)
+  for(int trial = 0; trial < 10; ++trial)
   {
     // Set random weights
     for(auto& n: hidden_layer)
@@ -120,12 +121,16 @@ int main()
             }
           }
       }
-      std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
+      //std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
       // Stopping criterion
       if(sum_squared_error < 1.0)
+      {
+        avg_nr_of_epochs = (avg_nr_of_epochs * trial + epoch) / (trial + 1);
         break;
+      }
     }
   }
+  std::cout << "Average nr of epochs = " << avg_nr_of_epochs << std::endl;
 
   return 0;
 }
