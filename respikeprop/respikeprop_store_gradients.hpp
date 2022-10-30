@@ -21,20 +21,25 @@ namespace resp {
   struct Neuron
   {
     Neuron(std::string key_ = "neuron") : key(key_) {}
-    struct Synapse
+    struct Connection
     {
-      Synapse(Neuron& pre_, double weight_, double delay_)
-      : pre(&pre_)  // taking raw address
-      , weight(weight_)
-      , delay(delay_)
-      , delta_weight(0.) {}
-      Neuron* pre;  // putting a lot of responsibility on user...
-      double weight;
-      double delay;
-      double delta_weight;
-      std::vector<double> dt_dws;  // same order as spikes
+      Neuron* neuron;  // putting a lot of responsibility on user...
+      struct Synapse
+      {
+        //Synapse(double weight_, double delay_)
+        //: weight(weight_)
+        //, delay(delay_)
+        //, delta_weight(0.) {}
+        double weight;
+        double delay;
+        double delta_weight;
+        std::vector<double> dt_dws;  // same order as spikes
+      };
+      //std::vector<std::vector<double>> dpostt_dts; // per postspike per prespike
+      std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
+      std::vector<Synapse> synapses;
     };
-    std::vector<Synapse> incoming_synapses;
+    std::vector<Connection> incoming_connections;
     std::vector<Neuron*> post_neuron_ptrs;
     struct Spike
     {
@@ -55,10 +60,11 @@ namespace resp {
     void clear()
     {
       spikes.clear();
-      for(auto& incoming_synapse: incoming_synapses)
+      for(auto& incoming_connection: incoming_connections)
       {
-        incoming_synapse.dt_dws.clear();
-        for(auto& pre_spike: incoming_synapse.pre->spikes)
+        for(auto& incoming_synapse: incoming_connection.synapses)
+          incoming_synapse.dt_dws.clear();
+        for(auto& pre_spike: incoming_connection.neuron->spikes)
           pre_spike.dpostt_dts.clear();
       }
     }
@@ -100,9 +106,10 @@ namespace resp {
     {
       const double threshold = 1.;
       double u = 0.;
-      for(const auto& incoming_synapse: incoming_synapses)
-        for(const auto& pre_spike: incoming_synapse.pre->spikes)
-          u += incoming_synapse.weight * epsilon(time - pre_spike.time - incoming_synapse.delay);
+      for(const auto& incoming_connection: incoming_connections)
+        for(const auto& pre_spike: incoming_connection.neuron->spikes)
+          for(const auto& synapse: incoming_connection.synapses)
+            u += synapse.weight * epsilon(time - pre_spike.time - synapse.delay);
       for(const auto& ref_spike: spikes)
         u += eta(time - ref_spike.time);
 
@@ -110,46 +117,57 @@ namespace resp {
       {
         double du_dt = 0.;
         {
-          for(const auto& synapse: incoming_synapses)
-            for(const auto& pre_spike: synapse.pre->spikes)
-              du_dt += synapse.weight * epsilond(time - pre_spike.time - synapse.delay);
+          for(const auto& incoming_connection: incoming_connections)
+            for(const auto& pre_spike: incoming_connection.neuron->spikes)
+              for(const auto& synapse: incoming_connection.synapses)
+                du_dt += synapse.weight * epsilond(time - pre_spike.time - synapse.delay);
           for(const auto& ref_spike: spikes)
             du_dt += etad(time - ref_spike.time);
           if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
             du_dt = .1;
         }
-        for(auto& synapse: incoming_synapses)
-        {
-          double du_dw = 0.;
+        for(auto& incoming_connection: incoming_connections)
+          for(auto& synapse: incoming_connection.synapses)
           {
-            for(const auto& pre_spike: synapse.pre->spikes)
-              du_dw += epsilon(time - pre_spike.time - synapse.delay);
-            for(const auto& [ref_spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
-              du_dw += - etad(time - ref_spike.time) * dt_dw;
+            double du_dw = 0.;
+            {
+              for(const auto& pre_spike: incoming_connection.neuron->spikes)
+                du_dw += epsilon(time - pre_spike.time - synapse.delay);
+              for(const auto& [ref_spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
+                du_dw += - etad(time - ref_spike.time) * dt_dw;
+            }
+            double dt_dw = - du_dw / du_dt;
+            synapse.dt_dws.emplace_back(dt_dw);
           }
-          double dt_dw = - du_dw / du_dt;
-          synapse.dt_dws.emplace_back(dt_dw);
-        }
 
         {
-          for(auto& synapse: incoming_synapses)
-            for(auto& pre_spike: synapse.pre->spikes)
+          for(const auto& incoming_connection: incoming_connections)
+          {
+            // add an item to incoming_connection.dpostt_dts 
+            for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
             {
-              // find out which post neuron is this...
-              int index = find(synapse.pre->post_neuron_ptrs.begin(), synapse.pre->post_neuron_ptrs.end(), this) - synapse.pre->post_neuron_ptrs.begin(); // very ugly... let's hope this simplifies later...
-              if(pre_spike.dpostt_dts.empty())
-                pre_spike.dpostt_dts.resize(synapse.pre->post_neuron_ptrs.size());
-              // which post spike is time -> the last one ... well... might not have been added yet...
-              if(pre_spike.dpostt_dts.at(index).size() < spikes.size() + 1) // + 1, because spike was not added yet
+              double dpostu_dt = 0.;
+              for(const auto& [ref_spike, dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
+                dpostu_dt -= etad(time - ref_spike.time) * dpret_dpostt; // hmmm... what if ref_spike was before pre_spike....
+
+              for(const auto& synapse: incoming_connection.synapses)
               {
-                double dpostu_dt = 0.;
-                for(const auto& [ref_spike, ref_dpostt_dt]: ranges::views::zip(spikes, pre_spike.dpostt_dts.at(index)))
-                  dpostu_dt -= etad(time - ref_spike.time) * ref_dpostt_dt;
-                double dpostt_dt = - dpostu_dt / du_dt;
-                pre_spike.dpostt_dts.at(index).emplace_back(dpostt_dt);
+                // find out which post neuron is this...
+                int index = find(synapse.pre->post_neuron_ptrs.begin(), synapse.pre->post_neuron_ptrs.end(), this) - synapse.pre->post_neuron_ptrs.begin(); // very ugly... let's hope this simplifies later...
+                if(pre_spike.dpostt_dts.empty())
+                  pre_spike.dpostt_dts.resize(synapse.pre->post_neuron_ptrs.size());
+                // which post spike is time -> the last one ... well... might not have been added yet...
+                if(pre_spike.dpostt_dts.at(index).size() < spikes.size() + 1) // + 1, because spike was not added yet
+                {
+                  for(const auto& [ref_spike, ref_dpostt_dt]: ranges::views::zip(spikes, pre_spike.dpostt_dts.at(index)))
+                    dpostu_dt -= etad(time - ref_spike.time) * ref_dpostt_dt;
+                  double dpostt_dt = - dpostu_dt / du_dt;
+                  pre_spike.dpostt_dts.at(index).emplace_back(dpostt_dt);
+                }
+                pre_spike.dpostt_dts.at(index).back() += synapse.weight * epsilond(time - pre_spike.time - synapse.delay) / du_dt;
               }
-              pre_spike.dpostt_dts.at(index).back() += synapse.weight * epsilond(time - pre_spike.time - synapse.delay) / du_dt;
             }
+          }
         }
 
         spikes.emplace_back(time, du_dt);
@@ -158,9 +176,10 @@ namespace resp {
 
     void compute_delta_weights(const double learning_rate)  // Eq (9)
     {
-      for(auto& synapse: incoming_synapses)
-        for(const auto& [spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
-          synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * dt_dw;
+      for(auto& incoming_connection: incoming_connections)
+        for(auto& synapse: incoming_connection.synapses)
+          for(const auto& [spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
+            synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * dt_dw;
     }
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {

@@ -13,9 +13,10 @@ namespace resp
 
   void connect_neurons(auto& pre, auto& post)
   {
+    auto& incoming_connection = post.incoming_connections.emplace_back(&pre);
     for(auto delay_i = 16; delay_i--;)
     {
-      post.incoming_synapses.emplace_back(pre, .0, delay_i + 1.0);
+      incoming_connection.synapses.emplace_back(.0, delay_i + 1.0);
       pre.post_neuron_ptrs.emplace_back(&post);
     }
   };
@@ -88,13 +89,19 @@ int main()
   {
     // Set random weights
     for(auto& n: hidden_layer)
-      for(auto& synapse: n.incoming_synapses)
-        synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
-    for(auto& synapse: output_layer.front().incoming_synapses)
-      if(synapse.pre->key == "hidden 5")
-        synapse.weight = std::uniform_real_distribution<>(-.5, 0.)(random_gen);
+      for(auto& incoming_connection: n.incoming_connections)
+        for(auto& synapse: incoming_connection.synapses)
+          synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
+
+    for(auto& incoming_connection: output_layer.front().incoming_connections)
+    {
+      if(incoming_connection.neuron->key == "hidden 5")
+        for(auto& synapse: incoming_connection.synapses)
+          synapse.weight = std::uniform_real_distribution<>(-.5, 0.)(random_gen);
       else
-        synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
+        for(auto& synapse: incoming_connection.synapses)
+          synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
+    }
     // Main training loop
     for(int epoch = 0; epoch < 1000; ++epoch)
     {
@@ -114,11 +121,12 @@ int main()
           for(auto& n: layer)
           {
             n.compute_delta_weights(learning_rate);
-            for(auto& synapse: n.incoming_synapses)
-            {
-              synapse.weight += synapse.delta_weight;
-              synapse.delta_weight = 0.;
-            }
+            for(auto& incoming_connection: n.incoming_connections)
+              for(auto& synapse: incoming_connection.synapses)
+              {
+                synapse.weight += synapse.delta_weight;
+                synapse.delta_weight = 0.;
+              }
           }
       }
       //std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
