@@ -39,7 +39,6 @@ namespace resp {
     struct Spike
     {
       double time;
-      double du_dt; // temporary, can be removed if dpostt_dts is stored
       std::vector<std::vector<double>> dpostt_dts; // per spike per post-neuron
     };
     std::vector<Spike> spikes;  // Eq (1)
@@ -93,7 +92,7 @@ namespace resp {
 
     void fire(double time)
     {
-      spikes.emplace_back(time, .0);
+      spikes.emplace_back(time);
     }
 
     void forward_propagate(double time)  // Eq (2)
@@ -152,7 +151,7 @@ namespace resp {
             }
         }
 
-        spikes.emplace_back(time, du_dt);
+        spikes.emplace_back(time);
       }
     }
 
