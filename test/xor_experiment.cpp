@@ -50,6 +50,22 @@ namespace resp
         n.clear();
   }
 
+  auto get_xor_dataset()
+  {
+    struct sample
+    {
+      std::array<double, 3> input;
+      double output;
+    };
+    std::array<sample, 4> dataset{{
+      {{0., 0., 0.}, 16.},
+      {{0., 6., 0.}, 10.},
+      {{6., 0., 0.}, 10.},
+      {{6., 6., 0.}, 16.}
+    }};
+    return dataset;
+  };
+
 }
 
 int main()
@@ -70,18 +86,7 @@ int main()
   connect_layers(input_layer, hidden_layer);
   connect_layers(hidden_layer, output_layer);
 
-  // Create XOR dataset
-  struct sample
-  {
-    std::array<double, 3> input;
-    double output;
-  };
-  std::array<sample, 4> dataset{{
-    {{0., 0., 0.}, 16.},
-    {{0., 6., 0.}, 10.},
-    {{6., 0., 0.}, 10.},
-    {{6., 6., 0.}, 16.}
-  }};
+  auto dataset = get_xor_dataset();
 
   int avg_nr_of_epochs = 0;
   // Multiple trials for statistics
