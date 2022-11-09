@@ -14,7 +14,8 @@ namespace resp {
   //
   // Forward propagation is not event-based and thus compute time in the order
   // of time-steps.
-  // Backpropagation in this implementation is very compute heavy.
+  // Backpropagation in this implementation is implemented quite efficiently,
+  // keeping gradients in the forward pass.
   // Network connectivity is implemented using raw-pointers, leaving
   // responsibility of memory management with the user.
 
@@ -36,7 +37,6 @@ namespace resp {
         std::vector<double> dt_dws;  // same order as spikes
       };
       std::vector<Synapse> synapses;
-      //std::vector<std::vector<double>> dpostt_dts; // per postspike per prespike
       std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
     };
     std::vector<Connection> incoming_connections;
