@@ -143,7 +143,7 @@ namespace resp {
         {
           for(auto& incoming_connection: incoming_connections)
           {
-            // add an item to incoming_connection.dpostt_dts 
+            incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
             for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
             {
               dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
@@ -208,6 +208,7 @@ namespace resp {
                 for(const auto& [post_spike, dpret_dpostt]: ranges::views::zip(post_neuron_ptr->spikes, dpret_dpostts))
                   if(post_spike.time > spike.time)
                     dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * dpret_dpostt;
+
       return dE_dt;
     }
   };

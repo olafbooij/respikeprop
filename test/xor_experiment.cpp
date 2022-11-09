@@ -129,7 +129,7 @@ int main()
               }
           }
       }
-      //std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
+      std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
       // Stopping criterion
       if(sum_squared_error < 1.0)
       {
