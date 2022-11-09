@@ -44,7 +44,6 @@ namespace resp {
     struct Spike
     {
       double time;
-      double du_dt; // temporary, can be removed if dpostt_dts is stored
       std::vector<std::vector<double>> dpostt_dts; // per spike per post-neuron
     };
     std::vector<Spike> spikes;  // Eq (1)
@@ -99,7 +98,7 @@ namespace resp {
 
     void fire(double time)
     {
-      spikes.emplace_back(time, .0);
+      spikes.emplace_back(time);
     }
 
     void forward_propagate(double time)  // Eq (2)
@@ -146,37 +145,18 @@ namespace resp {
             incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
             for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
             {
-              dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
+              dpret_dpostts.resize(spikes.size(), 0.);  // make sure there's an entry for all post spikes
               double dpostu_dt = 0.;
               for(const auto& [ref_spike, dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
                 dpostu_dt -= etad(time - ref_spike.time) * dpret_dpostt;
               double dpostt_dt = - dpostu_dt / du_dt;
-              dpret_dpostts.back() = dpostt_dt;
-
               for(const auto& synapse: incoming_connection.synapses)
-              {
-                //// find out which post neuron is this...
-                //int index = find(synapse.pre->post_neuron_ptrs.begin(), synapse.pre->post_neuron_ptrs.end(), this) - synapse.pre->post_neuron_ptrs.begin(); // very ugly... let's hope this simplifies later...
-                //if(pre_spike.dpostt_dts.empty())
-                //  pre_spike.dpostt_dts.resize(synapse.pre->post_neuron_ptrs.size());
-
-                //// which post spike is time -> the last one ... well... might not have been added yet...
-                //if(pre_spike.dpostt_dts.at(index).size() < spikes.size() + 1) // + 1, because spike was not added yet
-                //{
-                //  // make sure that dpostt_dts.at(index) is spikes size
-                //  pre_spike.dpostt_dts.at(index).resize(spikes.size() + 1, 0.);
-                //  for(const auto& [ref_spike, ref_dpostt_dt]: ranges::views::zip(spikes, pre_spike.dpostt_dts.at(index)))
-                //    dpostu_dt -= etad(time - ref_spike.time) * ref_dpostt_dt;
-                //  double dpostt_dt = - dpostu_dt / du_dt;
-                //  pre_spike.dpostt_dts.at(index).back() = dpostt_dt;
-                //}
-                dpret_dpostts.back() += synapse.weight * epsilond(time - pre_spike.time - synapse.delay) / du_dt;
-              }
+                dpostt_dt += synapse.weight * epsilond(time - pre_spike.time - synapse.delay) / du_dt;
+              dpret_dpostts.emplace_back(dpostt_dt);
             }
           }
         }
-
-        spikes.emplace_back(time, du_dt);
+        spikes.emplace_back(time);
       }
     }
 
