@@ -35,12 +35,12 @@ namespace resp {
         double delta_weight;
         std::vector<double> dt_dws;  // same order as spikes
       };
+      std::vector<Synapse> synapses;
       //std::vector<std::vector<double>> dpostt_dts; // per postspike per prespike
       std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
-      std::vector<Synapse> synapses;
     };
     std::vector<Connection> incoming_connections;
-    std::vector<Neuron*> post_neuron_ptrs;
+    std::vector<Neuron*> post_neuron_ptrs;  // only used for dE_dt
     struct Spike
     {
       double time;
@@ -141,30 +141,36 @@ namespace resp {
           }
 
         {
-          for(const auto& incoming_connection: incoming_connections)
+          for(auto& incoming_connection: incoming_connections)
           {
             // add an item to incoming_connection.dpostt_dts 
             for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
             {
+              dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
               double dpostu_dt = 0.;
               for(const auto& [ref_spike, dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
-                dpostu_dt -= etad(time - ref_spike.time) * dpret_dpostt; // hmmm... what if ref_spike was before pre_spike....
+                dpostu_dt -= etad(time - ref_spike.time) * dpret_dpostt;
+              double dpostt_dt = - dpostu_dt / du_dt;
+              dpret_dpostts.back() = dpostt_dt;
 
               for(const auto& synapse: incoming_connection.synapses)
               {
-                // find out which post neuron is this...
-                int index = find(synapse.pre->post_neuron_ptrs.begin(), synapse.pre->post_neuron_ptrs.end(), this) - synapse.pre->post_neuron_ptrs.begin(); // very ugly... let's hope this simplifies later...
-                if(pre_spike.dpostt_dts.empty())
-                  pre_spike.dpostt_dts.resize(synapse.pre->post_neuron_ptrs.size());
-                // which post spike is time -> the last one ... well... might not have been added yet...
-                if(pre_spike.dpostt_dts.at(index).size() < spikes.size() + 1) // + 1, because spike was not added yet
-                {
-                  for(const auto& [ref_spike, ref_dpostt_dt]: ranges::views::zip(spikes, pre_spike.dpostt_dts.at(index)))
-                    dpostu_dt -= etad(time - ref_spike.time) * ref_dpostt_dt;
-                  double dpostt_dt = - dpostu_dt / du_dt;
-                  pre_spike.dpostt_dts.at(index).emplace_back(dpostt_dt);
-                }
-                pre_spike.dpostt_dts.at(index).back() += synapse.weight * epsilond(time - pre_spike.time - synapse.delay) / du_dt;
+                //// find out which post neuron is this...
+                //int index = find(synapse.pre->post_neuron_ptrs.begin(), synapse.pre->post_neuron_ptrs.end(), this) - synapse.pre->post_neuron_ptrs.begin(); // very ugly... let's hope this simplifies later...
+                //if(pre_spike.dpostt_dts.empty())
+                //  pre_spike.dpostt_dts.resize(synapse.pre->post_neuron_ptrs.size());
+
+                //// which post spike is time -> the last one ... well... might not have been added yet...
+                //if(pre_spike.dpostt_dts.at(index).size() < spikes.size() + 1) // + 1, because spike was not added yet
+                //{
+                //  // make sure that dpostt_dts.at(index) is spikes size
+                //  pre_spike.dpostt_dts.at(index).resize(spikes.size() + 1, 0.);
+                //  for(const auto& [ref_spike, ref_dpostt_dt]: ranges::views::zip(spikes, pre_spike.dpostt_dts.at(index)))
+                //    dpostu_dt -= etad(time - ref_spike.time) * ref_dpostt_dt;
+                //  double dpostt_dt = - dpostu_dt / du_dt;
+                //  pre_spike.dpostt_dts.at(index).back() = dpostt_dt;
+                //}
+                dpret_dpostts.back() += synapse.weight * epsilond(time - pre_spike.time - synapse.delay) / du_dt;
               }
             }
           }
@@ -181,6 +187,11 @@ namespace resp {
           for(const auto& [spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
             synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * dt_dw;
     }
+
+    // still doing this lazy, resulting in lots of duplication
+    // should compute it for output, then backprop through connections to pre-neurons
+    // thus having to update dE_dt somehow. Well, actually could update delta_weights one by one.
+    // as in clamp spike-> propagate down, updating weights. 
     double compute_dE_dt(const auto& spike)  // Eq (13)
     {
       if(clamped > 0.)
@@ -188,10 +199,15 @@ namespace resp {
           return spike.time - clamped;
 
       double dE_dt = 0.;
-      for(const auto& [post_neuron_ptr, dpostt_dts]: ranges::views::zip(post_neuron_ptrs, spike.dpostt_dts))
-        for(const auto& [post_spike, dpostt_dt]: ranges::views::zip(post_neuron_ptr->spikes, dpostt_dts))
-          if(post_spike.time > spike.time)
-            dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * dpostt_dt;
+      for(const auto& post_neuron_ptr: post_neuron_ptrs)
+        for(const auto& post_connection: post_neuron_ptr->incoming_connections)
+          if(post_connection.neuron == this)
+            // urgh, now have to search for my spike...
+            for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(spikes, post_connection.dprets_dpostts))
+              if(pre_spike.time == spike.time)
+                for(const auto& [post_spike, dpret_dpostt]: ranges::views::zip(post_neuron_ptr->spikes, dpret_dpostts))
+                  if(post_spike.time > spike.time)
+                    dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * dpret_dpostt;
       return dE_dt;
     }
   };
