@@ -160,36 +160,25 @@ namespace resp {
       }
     }
 
-    void compute_delta_weights(const double learning_rate)  // Eq (9)
+    // Results in a bit of double work, because each dE_dt change is pushed
+    // back separately. Could do this more efficient spike could know all
+    // resulting post-spikes have been back-propagated.
+    // In addition, using indices here is not that nice perhaps.
+    void add_dE_dt(int spike_i, double dE_dt, double learning_rate)
     {
       for(auto& incoming_connection: incoming_connections)
+      {
         for(auto& synapse: incoming_connection.synapses)
-          for(const auto& [spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
-            synapse.delta_weight -= learning_rate * compute_dE_dt(spike) * dt_dw;
+          synapse.delta_weight -= learning_rate * dE_dt * synapse.dt_dws.at(spike_i);
+        for(int pre_spike_i = 0; pre_spike_i < incoming_connection.neuron->spikes.size(); ++pre_spike_i)
+          incoming_connection.neuron->add_dE_dt(pre_spike_i, dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i), learning_rate);
+      }
     }
-
-    // still doing this lazy, resulting in lots of duplication
-    // should compute it for output, then backprop through connections to pre-neurons
-    // thus having to update dE_dt somehow. Well, actually could update delta_weights one by one.
-    // as in clamp spike-> propagate down, updating weights. 
-    double compute_dE_dt(const auto& spike)  // Eq (13)
+    void compute_delta_weights(const double learning_rate)  // missnomer, starts backprop
     {
-      if(clamped > 0.)
-        if(spike.time == spikes.front().time)
-          return spike.time - clamped;
-
-      double dE_dt = 0.;
-      for(const auto& post_neuron_ptr: post_neuron_ptrs)
-        for(const auto& post_connection: post_neuron_ptr->incoming_connections)
-          if(post_connection.neuron == this)
-            // urgh, now have to search for my spike...
-            for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(spikes, post_connection.dprets_dpostts))
-              if(pre_spike.time == spike.time)
-                for(const auto& [post_spike, dpret_dpostt]: ranges::views::zip(post_neuron_ptr->spikes, dpret_dpostts))
-                  if(post_spike.time > spike.time)
-                    dE_dt += post_neuron_ptr->compute_dE_dt(post_spike) * dpret_dpostt;
-
-      return dE_dt;
+      if(clamped > 0)  // to check that this is an output neuron
+        if(! spikes.empty())
+          add_dE_dt(0, spikes.front().time - clamped, learning_rate);
     }
   };
 }
