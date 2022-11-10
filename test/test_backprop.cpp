@@ -79,7 +79,6 @@ void check_one_input_one_output()
   //auto& incoming_connection = output.incoming_connections.emplace_back(&input);
   //auto& synapse = incoming_connection.synapses.emplace_back(7., 1.);
   auto& synapse = add_synapse(input, output, 7., 1.);
-  input.post_neuron_ptrs.emplace_back(&output);
 
   input.fire(0.);
   output.clamped = 3.;
@@ -98,8 +97,6 @@ void check_two_inputs_one_output()
   add_synapse(input_0, output, 3., 1.);
   //auto& synapse = output.incoming_synapses.emplace_back(input_1, 3., 1.);
   auto& synapse = add_synapse(input_1, output, 3., 1.);
-  input_0.post_neuron_ptrs.emplace_back(&output);
-  input_1.post_neuron_ptrs.emplace_back(&output);
 
   input_0.fire(0.);
   input_1.fire(0.);
@@ -119,8 +116,6 @@ void check_one_input_one_hidden_one_output()
   Neuron& output = network.emplace_back("output");
   auto& synapse_0 = add_synapse(input , hidden, 7., 1.);
   auto& synapse_1 = add_synapse(hidden, output, 7., 1.);
-  input.post_neuron_ptrs.emplace_back(&hidden);
-  hidden.post_neuron_ptrs.emplace_back(&output);
 
   input.fire(0.);
   output.clamped = 3.;
@@ -149,12 +144,6 @@ void check_two_inputs_two_hiddens_one_output()
   output.incoming_connections.reserve(2);
   add_synapse(hidden_0, output, 3., 1.2);
   add_synapse(hidden_1, output, 3.2, 1.1);
-  input_0.post_neuron_ptrs.emplace_back(&hidden_0);
-  input_0.post_neuron_ptrs.emplace_back(&hidden_1);
-  input_1.post_neuron_ptrs.emplace_back(&hidden_0);
-  input_1.post_neuron_ptrs.emplace_back(&hidden_1);
-  hidden_0.post_neuron_ptrs.emplace_back(&output);
-  hidden_1.post_neuron_ptrs.emplace_back(&output);
 
   input_0.fire(0.2);
   input_1.fire(0.1);
@@ -209,12 +198,6 @@ void check_two_inputs_two_hiddens_one_output_multi_synapses()
     Neuron::Connection::Synapse(-1.2, 1.12),
     Neuron::Connection::Synapse(-0.2, 1.3 )
   });
-  input_0.post_neuron_ptrs.emplace_back(&hidden_0);
-  input_0.post_neuron_ptrs.emplace_back(&hidden_1);
-  input_1.post_neuron_ptrs.emplace_back(&hidden_0);
-  input_1.post_neuron_ptrs.emplace_back(&hidden_1);
-  hidden_0.post_neuron_ptrs.emplace_back(&output);
-  hidden_1.post_neuron_ptrs.emplace_back(&output);
 
   input_0.fire(0.2);
   input_1.fire(0.1);

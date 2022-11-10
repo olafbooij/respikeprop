@@ -40,7 +40,6 @@ namespace resp {
       std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
     };
     std::vector<Connection> incoming_connections;
-    std::vector<Neuron*> post_neuron_ptrs;  // only used for dE_dt
     struct Spike
     {
       double time;

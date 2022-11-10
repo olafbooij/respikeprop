@@ -15,10 +15,7 @@ namespace resp
   {
     auto& incoming_connection = post.incoming_connections.emplace_back(&pre);
     for(auto delay_i = 16; delay_i--;)
-    {
       incoming_connection.synapses.emplace_back(.0, delay_i + 1.0);
-    }
-    pre.post_neuron_ptrs.emplace_back(&post);
   };
 
   void connect_layers(auto& pre_layer, auto& post_layer)
