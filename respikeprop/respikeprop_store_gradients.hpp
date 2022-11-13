@@ -40,10 +40,6 @@ namespace resp {
       std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
     };
     std::vector<Connection> incoming_connections;
-    struct Spike
-    {
-      double time;
-    };
     std::vector<double> spikes;
     // The following settings are taken from the thesis "Temporal Pattern
     // Classification using Spiking Neural Networks" which differ from the
