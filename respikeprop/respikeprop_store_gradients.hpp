@@ -43,9 +43,8 @@ namespace resp {
     struct Spike
     {
       double time;
-      std::vector<std::vector<double>> dpostt_dts; // per spike per post-neuron
     };
-    std::vector<Spike> spikes;  // Eq (1)
+    std::vector<double> spikes;
     // The following settings are taken from the thesis "Temporal Pattern
     // Classification using Spiking Neural Networks" which differ from the
     // paper.
@@ -60,10 +59,9 @@ namespace resp {
       spikes.clear();
       for(auto& incoming_connection: incoming_connections)
       {
+        incoming_connection.dprets_dpostts.clear();
         for(auto& incoming_synapse: incoming_connection.synapses)
           incoming_synapse.dt_dws.clear();
-        for(auto& pre_spike: incoming_connection.neuron->spikes)
-          pre_spike.dpostt_dts.clear();
       }
     }
     auto epsilon(const auto s) const  // Eq (4)
@@ -100,16 +98,16 @@ namespace resp {
       spikes.emplace_back(time);
     }
 
-    void forward_propagate(double time)  // Eq (2)
+    void forward_propagate(double time)
     {
       const double threshold = 1.;
       double u = 0.;
       for(const auto& incoming_connection: incoming_connections)
         for(const auto& pre_spike: incoming_connection.neuron->spikes)
           for(const auto& synapse: incoming_connection.synapses)
-            u += synapse.weight * epsilon(time - pre_spike.time - synapse.delay);
+            u += synapse.weight * epsilon(time - pre_spike - synapse.delay);
       for(const auto& ref_spike: spikes)
-        u += eta(time - ref_spike.time);
+        u += eta(time - ref_spike);
 
       if(u > threshold)
       {
@@ -118,9 +116,9 @@ namespace resp {
           for(const auto& incoming_connection: incoming_connections)
             for(const auto& pre_spike: incoming_connection.neuron->spikes)
               for(const auto& synapse: incoming_connection.synapses)
-                du_dt += synapse.weight * epsilond(time - pre_spike.time - synapse.delay);
+                du_dt += synapse.weight * epsilond(time - pre_spike - synapse.delay);
           for(const auto& ref_spike: spikes)
-            du_dt += etad(time - ref_spike.time);
+            du_dt += etad(time - ref_spike);
           if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
             du_dt = .1;
         }
@@ -130,9 +128,9 @@ namespace resp {
             double du_dw = 0.;
             {
               for(const auto& pre_spike: incoming_connection.neuron->spikes)
-                du_dw += epsilon(time - pre_spike.time - synapse.delay);
+                du_dw += epsilon(time - pre_spike - synapse.delay);
               for(const auto& [ref_spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
-                du_dw += - etad(time - ref_spike.time) * dt_dw;
+                du_dw += - etad(time - ref_spike) * dt_dw;
             }
             double dt_dw = - du_dw / du_dt;
             synapse.dt_dws.emplace_back(dt_dw);
@@ -147,10 +145,10 @@ namespace resp {
               dpret_dpostts.resize(spikes.size(), 0.);  // make sure there's an entry for all post spikes
               double dpostu_dt = 0.;
               for(const auto& [ref_spike, dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
-                dpostu_dt -= etad(time - ref_spike.time) * dpret_dpostt;
+                dpostu_dt -= etad(time - ref_spike) * dpret_dpostt;
               double dpostt_dt = - dpostu_dt / du_dt;
               for(const auto& synapse: incoming_connection.synapses)
-                dpostt_dt += synapse.weight * epsilond(time - pre_spike.time - synapse.delay) / du_dt;
+                dpostt_dt += synapse.weight * epsilond(time - pre_spike - synapse.delay) / du_dt;
               dpret_dpostts.emplace_back(dpostt_dt);
             }
           }
@@ -160,9 +158,8 @@ namespace resp {
     }
 
     // Results in a bit of double work, because each dE_dt change is pushed
-    // back separately. Could do this more efficient spike could know all
-    // resulting post-spikes have been back-propagated.
-    // In addition, using indices here is not that nice perhaps.
+    // back separately. Could be more efficient if knowing for each spike if
+    // all resulting post-spikes have been back-propagated.
     void add_dE_dt(int spike_i, double dE_dt, double learning_rate)
     {
       for(auto& incoming_connection: incoming_connections)
@@ -170,14 +167,15 @@ namespace resp {
         for(auto& synapse: incoming_connection.synapses)
           synapse.delta_weight -= learning_rate * dE_dt * synapse.dt_dws.at(spike_i);
         for(int pre_spike_i = 0; pre_spike_i < incoming_connection.neuron->spikes.size(); ++pre_spike_i)
-          incoming_connection.neuron->add_dE_dt(pre_spike_i, dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i), learning_rate);
+          if(spikes.at(spike_i) > incoming_connection.neuron->spikes.at(pre_spike_i))
+            incoming_connection.neuron->add_dE_dt(pre_spike_i, dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i), learning_rate);
       }
     }
     void compute_delta_weights(const double learning_rate)  // missnomer, starts backprop
     {
       if(clamped > 0)  // to check that this is an output neuron
         if(! spikes.empty())
-          add_dE_dt(0, spikes.front().time - clamped, learning_rate);
+          add_dE_dt(0, spikes.front() - clamped, learning_rate);
     }
   };
 }

@@ -25,10 +25,10 @@ void check_backprop(auto& network, auto& synapse)
   //{
   //  std::cout << neuron.key << " spikes before: " << neuron.spikes.size() << " : " << std::endl;
   //  for(auto spike: neuron.spikes)
-  //    std::cout << spike.time << std::endl;
+  //    std::cout << spike << std::endl;
   //}
 
-  auto error_before = .5 * pow(output.spikes.at(0).time - output.clamped, 2);
+  auto error_before = .5 * pow(output.spikes.at(0) - output.clamped, 2);
 
   const double small = 0.03;
   synapse.weight += small;
@@ -41,9 +41,9 @@ void check_backprop(auto& network, auto& synapse)
   //{
   //  std::cout << neuron.key << " spikes after : " << neuron.spikes.size() << " : " << std::endl;
   //  for(auto spike: neuron.spikes)
-  //    std::cout << spike.time << std::endl;
+  //    std::cout << spike << std::endl;
   //}
-  auto error_after = .5 * pow(output.spikes.at(0).time - output.clamped, 2);
+  auto error_after = .5 * pow(output.spikes.at(0) - output.clamped, 2);
 
   const double learning_rate = 1.;
   for(auto& neuron: network)

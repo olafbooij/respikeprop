@@ -67,7 +67,9 @@ namespace resp
 
 int main()
 {
-  std::mt19937 random_gen(time(0));
+  auto seed = time(0);
+  std::cout << "random seed = " << seed << std::endl;
+  std::mt19937 random_gen(seed);
   using namespace resp;
 
   const double timestep = .1;
@@ -118,7 +120,7 @@ int main()
         // Forward propagation
         propagate(network, 40., timestep);
         // Backward propagation and changing weights (no batch-mode)
-        sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0).time - output_layer.at(0).clamped, 2);
+        sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
         for(auto& layer: network)
           for(auto& n: layer)
           {
