@@ -6,7 +6,7 @@ The implementation stores gradients in the forward pass to allow for efficient
 backpropagation. Several efficiency improvements still need to be implemented.
 
 The repo includes an implementation
-([./respikeprop/respikeprop_reference_impl.hpp]) which is easy to match with the
+([./respikeprop/respikeprop_reference_impl.hpp](./respikeprop/respikeprop_reference_impl.hpp)) which is easy to match with the
 formulas of the paper and therefore has some educational value / serves as
 a good reference. It is however very inefficient.
 
