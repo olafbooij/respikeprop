@@ -75,7 +75,6 @@ int main()
   const double timestep = .1;
   const double learning_rate = 1e-2;
 
-
   // Create network architecture
   std::array network{create_layer({"input 1", "input 2", "bias"}),
                      create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}),

@@ -27,10 +27,6 @@ namespace resp {
       Neuron* neuron;  // putting a lot of responsibility on user...
       struct Synapse
       {
-        //Synapse(double weight_, double delay_)
-        //: weight(weight_)
-        //, delay(delay_)
-        //, delta_weight(0.) {}
         double weight;
         double delay;
         double delta_weight;
