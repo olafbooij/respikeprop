@@ -144,9 +144,9 @@ namespace resp {
               double dpostu_dt = 0.;
               for(const auto& [ref_spike, ref_dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
                 dpostu_dt -= etad(time - ref_spike) * ref_dpret_dpostt;
-              double dpret_dpostt = - dpostu_dt / du_dt;
               for(const auto& synapse: incoming_connection.synapses)
-                dpret_dpostt += synapse.weight * epsilond(time - pre_spike - synapse.delay) / du_dt;
+                dpostu_dt -= synapse.weight * epsilond(time - pre_spike - synapse.delay);
+              double dpret_dpostt = - dpostu_dt / du_dt;
               dpret_dpostts.emplace_back(dpret_dpostt);
             }
           }
