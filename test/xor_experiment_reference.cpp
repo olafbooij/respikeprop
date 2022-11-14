@@ -58,7 +58,7 @@ int main()
 {
   auto seed = time(0);
   std::cout << "random seed = " << seed << std::endl;
-  std::mt19937 random_gen(2);
+  std::mt19937 random_gen(seed);
   using namespace resp;
 
   const double timestep = .1;
