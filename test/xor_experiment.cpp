@@ -120,17 +120,16 @@ int main()
         propagate(network, 40., timestep);
         // Backward propagation and changing weights (no batch-mode)
         sum_squared_error += .5 * pow(output_layer.at(0).spikes.at(0) - output_layer.at(0).clamped, 2);
+
+        output_layer.at(0).compute_delta_weights(learning_rate);
         for(auto& layer: network)
           for(auto& n: layer)
-          {
-            n.compute_delta_weights(learning_rate);
             for(auto& incoming_connection: n.incoming_connections)
               for(auto& synapse: incoming_connection.synapses)
               {
                 synapse.weight += synapse.delta_weight;
                 synapse.delta_weight = 0.;
               }
-          }
       }
       std::cout << trial << " " << epoch << " " << sum_squared_error << std::endl;
       // Stopping criterion
