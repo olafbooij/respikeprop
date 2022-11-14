@@ -146,12 +146,12 @@ namespace resp {
             {
               dpret_dpostts.resize(spikes.size(), 0.);  // make sure there's an entry for all post spikes
               double dpostu_dt = 0.;
-              for(const auto& [ref_spike, dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
-                dpostu_dt -= etad(time - ref_spike) * dpret_dpostt;
-              double dpostt_dt = - dpostu_dt / du_dt;
+              for(const auto& [ref_spike, ref_dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
+                dpostu_dt -= etad(time - ref_spike) * ref_dpret_dpostt;
+              double dpret_dpostt = - dpostu_dt / du_dt;
               for(const auto& synapse: incoming_connection.synapses)
-                dpostt_dt += synapse.weight * epsilond(time - pre_spike - synapse.delay) / du_dt;
-              dpret_dpostts.emplace_back(dpostt_dt);
+                dpret_dpostt += synapse.weight * epsilond(time - pre_spike - synapse.delay) / du_dt;
+              dpret_dpostts.emplace_back(dpret_dpostt);
             }
           }
         }
