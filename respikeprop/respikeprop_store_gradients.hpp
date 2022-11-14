@@ -95,13 +95,27 @@ namespace resp {
     void forward_propagate(double time)
     {
       const double threshold = 1.;
-      double u = 0.;
+      double u_m = 0.;
+      double u_s = 0.;
+      double u_r = 0.;
       for(const auto& incoming_connection: incoming_connections)
         for(const auto& pre_spike: incoming_connection.neuron->spikes)
           for(const auto& synapse: incoming_connection.synapses)
-            u += synapse.weight * epsilon(time - pre_spike - synapse.delay);
+          {
+            double s = time - pre_spike - synapse.delay;
+            if(s > 0)
+            {
+              u_m += synapse.weight * exp(-s / tau_m);
+              u_s -= synapse.weight * exp(-s / tau_s);
+            }
+          }
       for(const auto& ref_spike: spikes)
-        u += eta(time - ref_spike);
+      {
+        double s = time - ref_spike;
+        if(s > 0)
+          u_r -= exp(-s / tau_r);
+      }
+      double u = u_m + u_s + u_r;
 
       if(u > threshold) // fire
       {
