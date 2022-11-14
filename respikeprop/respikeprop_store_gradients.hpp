@@ -122,12 +122,13 @@ namespace resp {
         // computing du_dt, Eq (12)
         double du_dt = 0.;
         {
-          for(const auto& incoming_connection: incoming_connections)
-            for(const auto& pre_spike: incoming_connection.neuron->spikes)
-              for(const auto& synapse: incoming_connection.synapses)
-                du_dt += synapse.weight * epsilond(time - pre_spike - synapse.delay);
-          for(const auto& ref_spike: spikes)
-            du_dt += etad(time - ref_spike);
+          du_dt = - u_m / tau_m - u_s / tau_s - u_r / tau_r;
+          //for(const auto& incoming_connection: incoming_connections)
+          //  for(const auto& pre_spike: incoming_connection.neuron->spikes)
+          //    for(const auto& synapse: incoming_connection.synapses)
+          //      du_dt += synapse.weight * epsilond(time - pre_spike - synapse.delay);
+          //for(const auto& ref_spike: spikes)
+          //  du_dt += etad(time - ref_spike);
           if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
             du_dt = .1;
         }
