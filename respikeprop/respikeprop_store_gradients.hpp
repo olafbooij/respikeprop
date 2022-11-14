@@ -94,6 +94,8 @@ namespace resp {
       spikes.emplace_back(time);
     }
 
+    // Forward propagate and store gradients for backpropagation. For now
+    // keeping this as one function. To be refactored.
     void forward_propagate(double time)
     {
       const double threshold = 1.;
@@ -105,8 +107,9 @@ namespace resp {
       for(const auto& ref_spike: spikes)
         u += eta(time - ref_spike);
 
-      if(u > threshold)
+      if(u > threshold) // fire
       {
+        // computing du_dt, Eq (12)
         double du_dt = 0.;
         {
           for(const auto& incoming_connection: incoming_connections)
@@ -118,6 +121,8 @@ namespace resp {
           if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
             du_dt = .1;
         }
+
+        // computing and storing dt_dws, Eq (10)
         for(auto& incoming_connection: incoming_connections)
           for(auto& synapse: incoming_connection.synapses)
           {
@@ -132,6 +137,7 @@ namespace resp {
             synapse.dt_dws.emplace_back(dt_dw);
           }
 
+        // computing and storing dt_dts, Eq (14)
         {
           for(auto& incoming_connection: incoming_connections)
           {
@@ -153,9 +159,11 @@ namespace resp {
       }
     }
 
-    // Results in a bit of double work, because each dE_dt change is pushed
-    // back separately. Could be more efficient if knowing for each spike if
-    // all resulting post-spikes have been back-propagated.
+    // Compute needed weight changes, and backpropagate to incoming
+    // connections.
+    // The implementation results in a bit of double work, because each dE_dt
+    // change is pushed back separately. Could be more efficient if knowing for
+    // each spike if all resulting post-spikes have been back-propagated.
     void add_dE_dt(int spike_i, double dE_dt, double learning_rate)
     {
       for(auto& incoming_connection: incoming_connections)
