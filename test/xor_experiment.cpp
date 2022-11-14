@@ -14,10 +14,8 @@ namespace resp
   void connect_neurons(auto& pre, auto& post)
   {
     for(auto delay_i = 16; delay_i--;)
-    {
       post.incoming_synapses.emplace_back(pre, .0, delay_i + 1.0);
-      pre.post_neuron_ptrs.emplace_back(&post);
-    }
+    pre.post_neuron_ptrs.emplace_back(&post);
   };
 
   void connect_layers(auto& pre_layer, auto& post_layer)
@@ -53,7 +51,7 @@ namespace resp
 
 int main()
 {
-  std::mt19937 random_gen(time(0));
+  std::mt19937 random_gen(2);
   using namespace resp;
 
   const double timestep = .1;
