@@ -29,11 +29,16 @@ int main()
   network.back().at(0).compute_delta_weights(learning_rate);
 
   auto& [_, hidden_layer, output_layer] = network;
-  assert(fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight - -0.0319112) < 1e-5);
-  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight - -0.0575665) < 1e-5);
-  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight - -0.0092582) < 1e-5);
-  assert(fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight - -0.014726) < 1e-5);
-  assert(fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight - -0.000471913) < 1e-5);
+  //std::cout << fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight - -0.0319112)   << std::endl;
+  //std::cout << fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight - -0.0575665)   << std::endl;
+  //std::cout << fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight - -0.0092582)   << std::endl;
+  //std::cout << fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight - -0.014726 )   << std::endl;
+  //std::cout << fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight - -0.000471913) << std::endl;
+  assert(fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight - -0.0319112) < 1e-7);
+  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight - -0.0575665) < 1e-7);
+  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight - -0.0092582) < 1e-7);
+  assert(fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight - -0.014726) < 1e-7);
+  assert(fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight - -0.000471913) < 1e-7);
   return 0;
 }
 
