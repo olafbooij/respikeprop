@@ -75,7 +75,7 @@ namespace resp {
           for(const auto& synapse: incoming_connection.synapses)
           {
             double s = time - pre_spike - synapse.delay;
-            if(s > 0)
+            if(s >= 0)
             {
               u_m += synapse.weight * exp(-s / tau_m);
               u_s -= synapse.weight * exp(-s / tau_s);
@@ -85,7 +85,7 @@ namespace resp {
       for(const auto& ref_spike: spikes)
       {
         double s = time - ref_spike;
-        if(s > 0)
+        if(s >= 0)
           u_r -= exp(-s / tau_r);
       }
       double u = u_m + u_s + u_r;
@@ -108,7 +108,7 @@ namespace resp {
             for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
             {
               double s = time - pre_spike - synapse.delay;
-              if(s > 0)
+              if(s >= 0)
               {
                 auto u_m1 =   synapse.weight * exp(-s / tau_m);
                 auto u_s1 = - synapse.weight * exp(-s / tau_s);
@@ -120,7 +120,7 @@ namespace resp {
           for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
           {
             double s = time - ref_spike;
-            if(s > 0)
+            if(s >= 0)
             {
               double etad_du_dt = exp(-s / tau_r) / tau_r / du_dt;
               for(auto& synapse: incoming_connection.synapses)
