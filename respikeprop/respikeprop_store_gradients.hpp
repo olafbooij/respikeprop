@@ -110,10 +110,10 @@ namespace resp {
               double s = time - pre_spike - synapse.delay;
               if(s > 0)
               {
-                auto u_m =   synapse.weight * exp(-s / tau_m);
-                auto u_s = - synapse.weight * exp(-s / tau_s);
-                synapse.dt_dws.back() += - (u_m + u_s) / du_dt / synapse.weight;
-                dpret_dpostts.back() += (- u_m / tau_m - u_s / tau_s) / du_dt;
+                auto u_m1 =   synapse.weight * exp(-s / tau_m);
+                auto u_s1 = - synapse.weight * exp(-s / tau_s);
+                synapse.dt_dws.back() += - (u_m1 + u_s1) / du_dt / synapse.weight;
+                dpret_dpostts.back() += (- u_m1 / tau_m - u_s1 / tau_s) / du_dt;
               }
             }
 
