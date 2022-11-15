@@ -99,7 +99,7 @@ namespace resp {
         for(auto& incoming_connection: incoming_connections)
         {
           incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
-          for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
+          for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
             dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
           for(auto& synapse: incoming_connection.synapses)
             synapse.dt_dws.emplace_back(0.);
@@ -112,8 +112,8 @@ namespace resp {
               {
                 auto u_m1 =   synapse.weight * exp(-s / tau_m);
                 auto u_s1 = - synapse.weight * exp(-s / tau_s);
-                synapse.dt_dws.back() += - (u_m1 + u_s1) / du_dt / synapse.weight;
-                dpret_dpostts.back() += (- u_m1 / tau_m - u_s1 / tau_s) / du_dt;
+                synapse.dt_dws.back() += - (u_m1 + u_s1) / synapse.weight;
+                dpret_dpostts.back() += - (u_m1 / tau_m + u_s1 / tau_s);
               }
             }
 
@@ -122,13 +122,17 @@ namespace resp {
             double s = time - ref_spike;
             if(s >= 0)
             {
-              double etad_du_dt = exp(-s / tau_r) / tau_r / du_dt;
+              double u_r1 = exp(-s / tau_r) / tau_r;
               for(auto& synapse: incoming_connection.synapses)
-                synapse.dt_dws.back() += etad_du_dt * synapse.dt_dws.at(ref_spike_i);
+                synapse.dt_dws.back() += u_r1 * synapse.dt_dws.at(ref_spike_i);
               for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-                dpret_dpostts.back()  += etad_du_dt * dpret_dpostts.at(ref_spike_i);
+                dpret_dpostts.back()  += u_r1 * dpret_dpostts.at(ref_spike_i);
             }
           }
+          for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
+            dpret_dpostts.back() /= du_dt;
+          for(auto& synapse: incoming_connection.synapses)
+            synapse.dt_dws.back() /= du_dt;
         }
         spikes.emplace_back(time);
       }
