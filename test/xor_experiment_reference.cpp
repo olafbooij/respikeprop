@@ -64,7 +64,7 @@ int main()
   const double timestep = .1;
   const double learning_rate = 1e-2;
 
-  int avg_nr_of_epochs = 0;
+  double avg_nr_of_epochs = 0;
   // Multiple trials for statistics
   for(int trial = 0; trial < 10; ++trial)
   {
