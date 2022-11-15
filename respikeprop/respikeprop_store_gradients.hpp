@@ -3,6 +3,7 @@
 #include<vector>
 #include<cmath>
 #include<range/v3/view/zip.hpp>
+#include<range/v3/view/enumerate.hpp>
 
 namespace resp {
 
@@ -56,34 +57,6 @@ namespace resp {
           incoming_synapse.dt_dws.clear();
       }
     }
-    auto epsilon(const auto s) const  // Eq (4)
-    {
-      if(s < 0.)
-        return 0.;
-      else
-        return exp(-s / tau_m) - exp(-s / tau_s);
-    };
-    auto eta(const auto s) const  // Eq (5)
-    {
-      if(s < 0.)
-        return 0.;
-      else
-        return - exp(-s / tau_r);
-    };
-    auto epsilond(const auto s)
-    {
-      if(s < 0.)
-        return 0.;
-      else
-        return - exp(-s / tau_m) / tau_m + exp(-s / tau_s) / tau_s;
-    };
-    auto etad(const auto s)
-    {
-      if(s < 0.)
-        return 0.;
-      else
-        return exp(-s / tau_r) / tau_r;
-    };
 
     void fire(double time)
     {
@@ -97,7 +70,6 @@ namespace resp {
       const double threshold = 1.;
       double u_m = 0.;
       double u_s = 0.;
-      double u_r = 0.;
       for(const auto& incoming_connection: incoming_connections)
         for(const auto& pre_spike: incoming_connection.neuron->spikes)
           for(const auto& synapse: incoming_connection.synapses)
@@ -109,6 +81,7 @@ namespace resp {
               u_s -= synapse.weight * exp(-s / tau_s);
             }
           }
+      double u_r = 0.;
       for(const auto& ref_spike: spikes)
       {
         double s = time - ref_spike;
@@ -119,50 +92,41 @@ namespace resp {
 
       if(u > threshold) // fire
       {
-        // computing du_dt, Eq (12)
-        double du_dt = 0.;
-        {
-          du_dt = - u_m / tau_m - u_s / tau_s - u_r / tau_r;
-          //for(const auto& incoming_connection: incoming_connections)
-          //  for(const auto& pre_spike: incoming_connection.neuron->spikes)
-          //    for(const auto& synapse: incoming_connection.synapses)
-          //      du_dt += synapse.weight * epsilond(time - pre_spike - synapse.delay);
-          //for(const auto& ref_spike: spikes)
-          //  du_dt += etad(time - ref_spike);
-          if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
-            du_dt = .1;
-        }
+        double du_dt = - u_m / tau_m - u_s / tau_s - u_r / tau_r;
+        if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
+          du_dt = .1;
 
-        // computing and storing dt_dws, Eq (10)
         for(auto& incoming_connection: incoming_connections)
-          for(auto& synapse: incoming_connection.synapses)
-          {
-            double du_dw = 0.;
-            {
-              for(const auto& pre_spike: incoming_connection.neuron->spikes)
-                du_dw += epsilon(time - pre_spike - synapse.delay);
-              for(const auto& [ref_spike, dt_dw]: ranges::views::zip(spikes, synapse.dt_dws))
-                du_dw += - etad(time - ref_spike) * dt_dw;
-            }
-            double dt_dw = - du_dw / du_dt;
-            synapse.dt_dws.emplace_back(dt_dw);
-          }
-
-        // computing and storing dt_dts, Eq (14)
         {
-          for(auto& incoming_connection: incoming_connections)
-          {
-            incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
+          incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
+          for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
+            dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
+          for(auto& synapse: incoming_connection.synapses)
+            synapse.dt_dws.emplace_back(0.);
+
+          for(auto& synapse: incoming_connection.synapses)
             for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
             {
-              dpret_dpostts.resize(spikes.size(), 0.);  // make sure there's an entry for all post spikes
-              double dpostu_dt = 0.;
-              for(const auto& [ref_spike, ref_dpret_dpostt]: ranges::views::zip(spikes, dpret_dpostts))
-                dpostu_dt -= etad(time - ref_spike) * ref_dpret_dpostt;
-              for(const auto& synapse: incoming_connection.synapses)
-                dpostu_dt -= synapse.weight * epsilond(time - pre_spike - synapse.delay);
-              double dpret_dpostt = - dpostu_dt / du_dt;
-              dpret_dpostts.emplace_back(dpret_dpostt);
+              double s = time - pre_spike - synapse.delay;
+              if(s > 0)
+              {
+                auto u_m =   synapse.weight * exp(-s / tau_m);
+                auto u_s = - synapse.weight * exp(-s / tau_s);
+                synapse.dt_dws.back() += - (u_m + u_s) / du_dt / synapse.weight;
+                dpret_dpostts.back() += (- u_m / tau_m - u_s / tau_s) / du_dt;
+              }
+            }
+
+          for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
+          {
+            double s = time - ref_spike;
+            if(s > 0)
+            {
+              double etad_du_dt = exp(-s / tau_r) / tau_r / du_dt;
+              for(auto& synapse: incoming_connection.synapses)
+                synapse.dt_dws.back() += etad_du_dt * synapse.dt_dws.at(ref_spike_i);
+              for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
+                dpret_dpostts.back()  += etad_du_dt * dpret_dpostts.at(ref_spike_i);
             }
           }
         }
