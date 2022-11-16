@@ -78,6 +78,7 @@ namespace resp
         for(auto& synapse: incoming_connection.synapses)
           synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
 
+    connect_neurons(hidden_layer.at(0), input_layer.at(0));
     for(auto& incoming_connection: output_layer.front().incoming_connections)
     {
       if(incoming_connection.neuron->key == "hidden 5")
