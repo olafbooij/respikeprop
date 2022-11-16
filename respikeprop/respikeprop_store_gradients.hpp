@@ -148,10 +148,12 @@ namespace resp {
       for(auto& incoming_connection: incoming_connections)
       {
         for(auto& synapse: incoming_connection.synapses)
-          synapse.delta_weight -= learning_rate * dE_dt * synapse.dt_dws.at(spike_i);
+          if(spike_i < synapse.dt_dws.size())
+            synapse.delta_weight -= learning_rate * dE_dt * synapse.dt_dws.at(spike_i);
         for(int pre_spike_i = 0; pre_spike_i < incoming_connection.neuron->spikes.size(); ++pre_spike_i)
-          if(spikes.at(spike_i) > incoming_connection.neuron->spikes.at(pre_spike_i))
-            incoming_connection.neuron->add_dE_dt(pre_spike_i, dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i), learning_rate);
+          if(pre_spike_i < incoming_connection.dprets_dpostts.size())
+            if(spike_i < incoming_connection.dprets_dpostts.at(pre_spike_i).size())
+              incoming_connection.neuron->add_dE_dt(pre_spike_i, dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i), learning_rate);
       }
     }
     void compute_delta_weights(const double learning_rate)  // missnomer, starts backprop
