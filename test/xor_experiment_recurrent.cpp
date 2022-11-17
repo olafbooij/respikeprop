@@ -6,8 +6,8 @@
 #include<test/xor_experiment.hpp>
 
 // Training a recurrent network to learn XOR
-// Consisting of 8 neurons all connected with each other, of which three are
-// apointed as input and one as output.
+// Consisting of 8 neurons all connected with each other. Three are apointed as
+// input and one as output.
 
 // Some helpfull functions that differ from the ones in xor_experiment.hpp
 namespace resp
@@ -16,6 +16,7 @@ namespace rec
 {
   void init_network(auto& network, auto& random_gen)
   {
+    // using layers, so to easily reuse xor_experiment script.
     auto& [input_layer, hidden_layer, output_layer] = network;
     connect_layers(input_layer, input_layer);
     connect_layers(input_layer, hidden_layer);
@@ -23,15 +24,15 @@ namespace rec
     connect_layers(hidden_layer, hidden_layer);
     connect_layers(input_layer, output_layer);
     connect_layers(hidden_layer, output_layer);
-    // It is not necessary to connect output back to others, because only its
-    // first spike is important.
+    // not necessary to connect output back to others, because only its first
+    // spike is important.
 
     // Set random weights
     for(auto& layer: network)
       for(auto& n: layer)
         for(auto& incoming_connection: n.incoming_connections)
           for(auto& synapse: incoming_connection.synapses)
-            synapse.weight = std::uniform_real_distribution<>(-.2, 0.3)(random_gen);
+            synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
   }
 }
 }
@@ -51,35 +52,17 @@ int main()
   for(int trial = 0; trial < 10; ++trial)
   {
     // Create network architecture
+    // with same number of synapses (4*(4+1)*16=320), as regular xor network
+    // (16*(3*5+5*1)=320)
     std::array network{create_layer({"input 1", "input 2", "bias"}),
-                       create_layer({"hidden 1", "hidden 2", "hidden 3"/*, "hidden 4"*/}),
+                       create_layer({"hidden 1"}),
                        create_layer({"output"})};
 
     rec::init_network(network, random_gen);
     auto& output_neuron = network.back().at(0);
-    
-    // 16 * (3 * 5 + 5 * 1) =  320
-    // 4 * (4 + 1) * 16 =  320
-
-
-    // pick subset of synapses and randomize delays
-    for(auto& layer: network)
-      for(auto& n: layer)
-        for(auto& incoming_connection: n.incoming_connections)
-        {
-          int nr_of_synapses = 3;  // -> 3 * 20 = 60 parameters , 9 neurons
-          decltype(incoming_connection.synapses) picked_synapses;
-          std::sample(incoming_connection.synapses.begin(), incoming_connection.synapses.end(), std::back_inserter(picked_synapses), nr_of_synapses, random_gen);
-          for(auto& synapse: picked_synapses)
-          {
-            synapse.delay = std::uniform_real_distribution<>(1, 10)(random_gen);
-            synapse.weight *= 16. / nr_of_synapses * 1.3;
-          }
-          incoming_connection.synapses = picked_synapses;
-        }
 
     // Main training loop
-    for(int epoch = 0; epoch < 1e5; ++epoch)
+    for(int epoch = 0; epoch < 1e3; ++epoch)
     {
       double sum_squared_error = 0;
       for(auto sample: get_xor_dataset())
