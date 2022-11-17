@@ -32,13 +32,6 @@ int main()
       bounce.forward_propagate(time);
       output.forward_propagate(time);
     }
-
-    //for(auto spike: bounce.spikes)
-    //  std::cout << "bounce " << spike << std::endl;
-    //for(auto spike: output.spikes)
-    //  std::cout << "output " << spike << std::endl;
-    //std::cout << bounce.spikes.size() << " bounce spikes" << std::endl;
-    //std::cout << output.spikes.size() << " output spikes" << std::endl;
     std::cout << output.spikes.front() << std::endl;
 
     const double learning_rate = 1e-2;
