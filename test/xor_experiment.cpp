@@ -26,6 +26,7 @@ int main()
                        create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}),
                        create_layer({"output"})};
     init_network(network, random_gen);
+    auto& output_neuron = network.back().at(0);
 
     // Main training loop
     for(int epoch = 0; epoch < 1000; ++epoch)
@@ -36,7 +37,13 @@ int main()
         clear(network);
         load_sample(network, sample);
         propagate(network, 40., timestep);
-        sum_squared_error += .5 * pow(network.back().at(0).spikes.at(0) - network.back().at(0).clamped, 2);
+        if(output_neuron.spikes.empty())
+        {
+          std::cout << "No output spikes! Replacing with different trial. " << std::endl;
+          trial -= 2;
+          epoch = 1000; break;
+        }
+        sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
 
         // Backward propagation and changing weights (no batch-mode)
         network.back().at(0).compute_delta_weights(learning_rate);
