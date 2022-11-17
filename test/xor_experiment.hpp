@@ -29,7 +29,7 @@ namespace resp
 
   void propagate(auto& network, const double maxtime, const double timestep)
   {
-    for(double time = 0.; time < maxtime; time += timestep)
+    for(double time = 0.; time < maxtime && network.back().at(0).spikes.empty(); time += timestep)
       for(auto& layer: network)
         for(auto& n: layer)
           n.forward_propagate(time);
