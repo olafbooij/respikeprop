@@ -40,8 +40,8 @@ int main()
         if(output_neuron.spikes.empty())
         {
           std::cout << "No output spikes! Replacing with different trial. " << std::endl;
-          trial -= 2;
-          epoch = 1000; break;
+          trial -= 1;
+          sum_squared_error = epoch = 1e9; break;
         }
         sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
 

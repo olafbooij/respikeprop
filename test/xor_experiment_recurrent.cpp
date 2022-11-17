@@ -62,7 +62,7 @@ int main()
     auto& output_neuron = network.back().at(0);
 
     // Main training loop
-    for(int epoch = 0; epoch < 1e3; ++epoch)
+    for(int epoch = 0; epoch < 1000; ++epoch)
     {
       double sum_squared_error = 0;
       for(auto sample: get_xor_dataset())
