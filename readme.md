@@ -12,13 +12,16 @@ value / serves as a good reference. See
 
 The same network as used in the paper for the experiments is implemented, which
 uses only feedforward connections
+
 <img src="./doc/xor_example_feedforward.svg">
+
 See : [./test/xor_experiment.cpp](./test/xor_experiment.cpp).
 
 However, as explained in the paper but left as future work,
 the algorithm can also deal with recurrent connections. In
 [./test/xor_experiment_recurrent.cpp](./test/xor_experiment_recurrent.cpp) we
 show that the following network can also be trained to learn the XOR example.
+
 <img src="./doc/xor_example_recurrent.svg">
 
 
