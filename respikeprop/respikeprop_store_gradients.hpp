@@ -45,9 +45,9 @@ namespace resp {
     double tau_m = 4.0;
     double tau_s = 2.0;
     double tau_r = 20.0;
-    double u_m = 0.;
-    double u_s = 0.;
-    double u_r = 0.;
+    double u_m;
+    double u_s;
+    double u_r;
     double clamped = 0.;
     std::string key;
 
@@ -60,6 +60,7 @@ namespace resp {
         for(auto& incoming_synapse: incoming_connection.synapses)
           incoming_synapse.dt_dws.clear();
       }
+      u_m = u_s = u_r = 0;
     }
 
     void fire(double time)
