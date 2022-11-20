@@ -11,7 +11,7 @@ value / serves as a good reference. See
 [./respikeprop/respikeprop_reference_impl.hpp](./respikeprop/respikeprop_reference_impl.hpp).
 
 The same network as used in the paper for the experiments is implemented, which
-uses only feedforward connections
+uses only feedforward connections.
 
 <img src="./doc/xor_example_feedforward.svg">
 

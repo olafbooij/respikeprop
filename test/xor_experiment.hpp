@@ -32,7 +32,7 @@ namespace resp
     for(double time = 0.; time < maxtime && network.back().at(0).spikes.empty(); time += timestep)
       for(auto& layer: network)
         for(auto& n: layer)
-          n.forward_propagate(time);
+          n.forward_propagate(time, timestep);
   }
 
   void clear(auto& network)

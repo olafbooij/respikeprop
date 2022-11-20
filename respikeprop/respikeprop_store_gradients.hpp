@@ -32,6 +32,7 @@ namespace resp {
         double delay;
         double delta_weight;
         std::vector<double> dt_dws;  // same order as spikes
+        // vector of future incoming spikes...
       };
       std::vector<Synapse> synapses;
       std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
@@ -44,6 +45,9 @@ namespace resp {
     double tau_m = 4.0;
     double tau_s = 2.0;
     double tau_r = 20.0;
+    double u_m = 0.;
+    double u_s = 0.;
+    double u_r = 0.;
     double clamped = 0.;
     std::string key;
 
@@ -65,28 +69,24 @@ namespace resp {
 
     // Forward propagate and store gradients for backpropagation. For now
     // keeping this as one function. To be refactored.
-    void forward_propagate(double time)
+    void forward_propagate(double time, double time_step)
     {
+      //std::cout << key << " " << time << std::endl;
       const double threshold = 1.;
-      double u_m = 0.;
-      double u_s = 0.;
+      u_m *= exp(- time_step / tau_m);
+      u_s *= exp(- time_step / tau_s);
+      u_r *= exp(- time_step / tau_r);
+      // check recent incoming spikes
       for(const auto& incoming_connection: incoming_connections)
-        for(const auto& pre_spike: incoming_connection.neuron->spikes)
-          for(const auto& synapse: incoming_connection.synapses)
-          {
-            double s = time - pre_spike - synapse.delay;
-            if(s >= 0)
-            {
-              u_m += synapse.weight * exp(-s / tau_m);
-              u_s -= synapse.weight * exp(-s / tau_s);
-            }
-          }
-      double u_r = 0.;
-      for(const auto& ref_spike: spikes)
       {
-        double s = time - ref_spike;
-        if(s >= 0)
-          u_r -= exp(-s / tau_r);
+        auto& pre_spikes = incoming_connection.neuron->spikes;
+        for(const auto& synapse: incoming_connection.synapses)
+          for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < time_step); pre_spike++)
+            if(time - *pre_spike - synapse.delay >= 0) // might result in some hair-trigger problems
+            {
+              u_m += synapse.weight;
+              u_s -= synapse.weight;
+            }
       }
       double u = u_m + u_s + u_r;
 
@@ -135,6 +135,7 @@ namespace resp {
             synapse.dt_dws.back() /= du_dt;
         }
         spikes.emplace_back(time);
+        u_r -= threshold;
       }
     }
 
