@@ -9,7 +9,7 @@ namespace resp
   {
     auto& incoming_connection = post.incoming_connections.emplace_back(&pre);
     for(auto delay_i = 16; delay_i--;)
-      incoming_connection.synapses.emplace_back(.0, delay_i + 1.0, 0.);
+      incoming_connection.synapses.emplace_back(.0, delay_i + 1.0 + 1e-10, 0.);
   };
 
   void connect_layers(auto& pre_layer, auto& post_layer)

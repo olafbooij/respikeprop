@@ -78,7 +78,7 @@ namespace resp {
       spikes.emplace_back(time);
     }
 
-    void forward_propagate(double time)  // Eq (2)
+    void forward_propagate(double time, double /*time_step*/) // Eq (2)
     {
       const double threshold = 1.;
       if(compute_u(time) > threshold)

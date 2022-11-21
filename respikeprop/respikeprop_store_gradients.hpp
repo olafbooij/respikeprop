@@ -74,14 +74,13 @@ namespace resp {
     {
       //std::cout << key << " " << time << std::endl;
       const double threshold = 1.;
-      u_m *= exp(- time_step / tau_m);
-      u_s *= exp(- time_step / tau_s);
-      u_r *= exp(- time_step / tau_r);
       // check recent incoming spikes
       for(const auto& incoming_connection: incoming_connections)
       {
         auto& pre_spikes = incoming_connection.neuron->spikes;
         for(const auto& synapse: incoming_connection.synapses)
+          //for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < 0); pre_spike++)
+          //  if(time - *pre_spike - synapse.delay >= -time_step) // might result in some hair-trigger problems
           for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < time_step); pre_spike++)
             if(time - *pre_spike - synapse.delay >= 0) // might result in some hair-trigger problems
             {
@@ -89,7 +88,37 @@ namespace resp {
               u_s -= synapse.weight;
             }
       }
+      u_m *= exp(- time_step / tau_m);
+      u_s *= exp(- time_step / tau_s);
+      u_r *= exp(- time_step / tau_r);
       double u = u_m + u_s + u_r;
+
+      //{
+      //  double u_m_ = 0.;
+      //  double u_s_ = 0.;
+      //  for(const auto& incoming_connection: incoming_connections)
+      //    for(const auto& pre_spike: incoming_connection.neuron->spikes)
+      //      for(const auto& synapse: incoming_connection.synapses)
+      //      {
+      //        double s = time - pre_spike - synapse.delay;
+      //        if(s >= 0)
+      //        {
+      //          u_m_ += synapse.weight * exp(-s / tau_m);
+      //          u_s_ -= synapse.weight * exp(-s / tau_s);
+      //        }
+      //      }
+      //  double u_r_ = 0.;
+      //  for(const auto& ref_spike: spikes)
+      //  {
+      //    double s = time - ref_spike;
+      //    if(s >= 0)
+      //      u_r_ -= exp(-s / tau_r);
+      //  }
+      //  //if(fabs(u - (u_m + u_s + u_r)) > 1e-7)
+      //  //std::cout << key << " " << time << " " << u_m << " - " << u_m_ << std::endl;
+      //  //std::cout << key << " " << time << " " << u_s << " - " << u_s_ << std::endl;
+      //  //std::cout << key << " " << time << " " << u_r << " - " << u_r_ << std::endl;
+      //}
 
       if(u > threshold) // fire
       {
