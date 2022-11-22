@@ -70,16 +70,15 @@ namespace resp {
 
     // Forward propagate and store gradients for backpropagation. For now
     // keeping this as one function. To be refactored.
-    void forward_propagate(double time, double time_step)
+    void forward_propagate(double time, double timestep)
     {
-      //std::cout << key << " " << time << std::endl;
       const double threshold = 1.;
       // check recent incoming spikes
       for(const auto& incoming_connection: incoming_connections)
       {
         auto& pre_spikes = incoming_connection.neuron->spikes;
         for(const auto& synapse: incoming_connection.synapses)
-          for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < time_step); pre_spike++)
+          for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < timestep); pre_spike++)
             if(time - *pre_spike - synapse.delay >= 0)  // might result in some hair-trigger problems
             {
               u_m += synapse.weight;
@@ -87,9 +86,9 @@ namespace resp {
             }
       }
       // update potentials
-      u_m *= exp(- time_step / tau_m);
-      u_s *= exp(- time_step / tau_s);
-      u_r *= exp(- time_step / tau_r);
+      u_m *= exp(- timestep / tau_m);
+      u_s *= exp(- timestep / tau_s);
+      u_r *= exp(- timestep / tau_r);
       double u = u_m + u_s + u_r;
 
       if(u > threshold) // fire
