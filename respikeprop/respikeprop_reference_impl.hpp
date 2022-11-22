@@ -40,7 +40,7 @@ namespace resp {
     // paper.
     double tau_m = 4.0;
     double tau_s = 2.0;
-    double tau_r = 20.0;
+    double tau_r = 4.0;
     double clamped = 0.;
     std::string key;
 
