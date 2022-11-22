@@ -29,8 +29,8 @@ int main()
     const double timestep = .01;
     for(double time = 0.; time < 30. && output.spikes.empty(); time += timestep)
     {
-      bounce.forward_propagate(time);
-      output.forward_propagate(time);
+      bounce.forward_propagate(time, timestep);
+      output.forward_propagate(time, timestep);
     }
     std::cout << output.spikes.front() << std::endl;
 

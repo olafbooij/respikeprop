@@ -9,7 +9,7 @@ namespace resp
   {
     auto& incoming_connection = post.incoming_connections.emplace_back(&pre);
     for(auto delay_i = 16; delay_i--;)
-      incoming_connection.synapses.emplace_back(.0, delay_i + 1.0, 0.);
+      incoming_connection.synapses.emplace_back(.0, delay_i + 1.0 + 1e-10, 0.);
   };
 
   void connect_layers(auto& pre_layer, auto& post_layer)
@@ -32,7 +32,7 @@ namespace resp
     for(double time = 0.; time < maxtime && network.back().at(0).spikes.empty(); time += timestep)
       for(auto& layer: network)
         for(auto& n: layer)
-          n.forward_propagate(time);
+          n.forward_propagate(time, timestep);
   }
 
   void clear(auto& network)

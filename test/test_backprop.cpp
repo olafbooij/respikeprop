@@ -20,7 +20,7 @@ void check_backprop(auto& network, auto& synapse)
     neuron.clear();
   for(double time = 0.; time < 40.; time += timestep)
     for(auto& neuron: network)
-      neuron.forward_propagate(time);
+      neuron.forward_propagate(time, timestep);
   //for(auto& neuron: network)
   //{
   //  std::cout << neuron.key << " spikes before: " << neuron.spikes.size() << " : " << std::endl;
@@ -36,7 +36,7 @@ void check_backprop(auto& network, auto& synapse)
     neuron.clear();
   for(double time = 0.; time < 40.; time += timestep)
     for(auto& neuron: network)
-      neuron.forward_propagate(time);
+      neuron.forward_propagate(time, timestep);
   //for(auto& neuron: network)
   //{
   //  std::cout << neuron.key << " spikes after : " << neuron.spikes.size() << " : " << std::endl;
