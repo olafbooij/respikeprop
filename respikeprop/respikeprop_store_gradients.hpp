@@ -86,7 +86,7 @@ namespace resp {
             }
       }
       // update potentials
-      u_m *= exp(- timestep / tau_m);
+      u_m *= exp(- timestep / tau_m);  // could make this compile time by fixing timestep and tau's
       u_s *= exp(- timestep / tau_s);
       u_r *= exp(- timestep / tau_r);
       double u = u_m + u_s + u_r;
