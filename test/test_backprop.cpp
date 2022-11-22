@@ -56,8 +56,8 @@ void check_backprop(auto& network, auto& synapse)
   synapse.weight -= small;
 
   //std::cout << "difference         " << error_after - error_before << std::endl;
-  std::cout << "d_E / d_w          " << (error_after - error_before) / small << std::endl;
-  std::cout << "computed d_E / d_w " << - synapse.delta_weight / learning_rate << std::endl;
+  //std::cout << "d_E / d_w          " << (error_after - error_before) / small << std::endl;
+  //std::cout << "computed d_E / d_w " << - synapse.delta_weight / learning_rate << std::endl;
   assert(fabs((error_after - error_before) / small - (- synapse.delta_weight / learning_rate)) < (timestep / small * 2));
 }
 

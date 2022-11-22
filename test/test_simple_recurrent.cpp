@@ -32,7 +32,7 @@ int main()
       bounce.forward_propagate(time, timestep);
       output.forward_propagate(time, timestep);
     }
-    std::cout << output.spikes.front() << std::endl;
+    //std::cout << output.spikes.front() << std::endl;
 
     const double learning_rate = 1e-2;
     output.compute_delta_weights(learning_rate);
@@ -50,6 +50,7 @@ int main()
     adjust_weights(bounce);
     adjust_weights(output);
   }
+  assert(fabs(output.spikes.front() - output.clamped) < 1e-7);
 
   return 0;
 }
