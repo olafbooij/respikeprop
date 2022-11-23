@@ -47,7 +47,6 @@ namespace resp {
     double tau_r = 4.0;
     double u_m;
     double u_s;
-    double u_r;
     double clamped = 0.;
     std::string key;
 
@@ -60,7 +59,7 @@ namespace resp {
         for(auto& incoming_synapse: incoming_connection.synapses)
           incoming_synapse.dt_dws.clear();
       }
-      u_m = u_s = u_r = 0;
+      u_m = u_s = 0;
     }
 
     void fire(double time)
@@ -88,14 +87,13 @@ namespace resp {
       // update potentials
       u_m *= exp(- timestep / tau_m);  // could make this compile time by fixing timestep and tau's
       u_s *= exp(- timestep / tau_s);
-      u_r *= exp(- timestep / tau_r);
-      double u = u_m + u_s + u_r;
+      double u = u_m + u_s;
 
       // compute exact future firing time
-      double D = (u_m + u_r) * (u_m + u_r) - 4 * u_s * -threshold;
+      double D = u_m * u_m - 4 * u_s * -threshold;
       if(D > 0)
       {
-        double expdt = (- (u_m + u_r) - sqrt(D)) / (2 * u_s);
+        double expdt = (- u_m - sqrt(D)) / (2 * u_s);
         if(expdt > 0)
         {
           double predict_spike = - log(expdt) * tau_m;
@@ -104,7 +102,7 @@ namespace resp {
             double spike_time = time + predict_spike;
             store_gradients(spike_time);
             spikes.emplace_back(spike_time);
-            u_r -= threshold;
+            u_m -= threshold;
           }
         }
       }
@@ -112,7 +110,7 @@ namespace resp {
 
     void store_gradients(double spike_time)
     {
-      double du_dt = - u_m / tau_m - u_s / tau_s - u_r / tau_r;
+      double du_dt = - u_m / tau_m - u_s / tau_s;
       if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
         du_dt = .1;
 
