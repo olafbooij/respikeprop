@@ -80,14 +80,13 @@ namespace resp {
           for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < timestep); pre_spike++)
             if(time - *pre_spike - synapse.delay >= 0)  // might result in some hair-trigger problems
             {
-              u_m += synapse.weight;
+              u_m += synapse.weight;  // not exact, because of timestep quantification
               u_s -= synapse.weight;
             }
       }
       // update potentials
       u_m *= exp(- timestep / tau_m);  // could make this compile time by fixing timestep and tau's
       u_s *= exp(- timestep / tau_s);
-      double u = u_m + u_s;
 
       // compute exact future firing time
       double D = u_m * u_m - 4 * u_s * -threshold;
@@ -100,9 +99,9 @@ namespace resp {
           if(predict_spike <= 0 && predict_spike > -timestep)
           {
             double spike_time = time + predict_spike;
-            store_gradients(spike_time);
+            store_gradients(spike_time);  // not exact, because of timestep quantification (u_m and u_s not on spike_time)
             spikes.emplace_back(spike_time);
-            u_m -= threshold;
+            u_m -= threshold;  // not exact, because of timestep quantification
           }
         }
       }
