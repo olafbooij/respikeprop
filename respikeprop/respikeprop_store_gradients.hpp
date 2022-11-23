@@ -44,7 +44,6 @@ namespace resp {
     // paper.
     double tau_m = 4.0;
     double tau_s = 2.0;
-    double tau_r = 4.0;
     double u_m;
     double u_s;
     double clamped = 0.;
@@ -139,7 +138,7 @@ namespace resp {
           double s = spike_time - ref_spike;
           if(s >= 0)
           {
-            double u_r1 = exp(-s / tau_r) / tau_r;
+            double u_r1 = exp(-s / tau_m) / tau_m;
             for(auto& synapse: incoming_connection.synapses)
               synapse.dt_dws.back() += u_r1 * synapse.dt_dws.at(ref_spike_i);
             for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
