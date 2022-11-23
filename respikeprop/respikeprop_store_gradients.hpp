@@ -94,17 +94,30 @@ namespace resp {
       // compute exact future firing time
       double D = (u_m + u_r) * (u_m + u_r) - 4 * u_s * -threshold;
       // if within timestep then replace time with computed firing time.
-      std::cout << key << " " << time << std::endl;
+      //std::cout << key << " " << time << std::endl;
+      bool fired = false;
       if(D > 0)
       {
         double expdt = (- (u_m + u_r) - sqrt(D)) / (2 * u_s);
-        double predict_spike = - log(expdt) * tau_m;
-        std::cout << key << " " <<  predict_spike << std::endl;
+        if(expdt > 0)
+        {
+          double predict_spike = - log(expdt) * tau_m;
+          if(predict_spike <= 0 && predict_spike > -timestep)
+          {
+            //std::cout << key << " " <<  predict_spike << std::endl;
+            fired = true;
+            time += predict_spike;
+          }
+        }
       }
+      //if(u <= threshold && fired == true)
+      //  std::cout << key << " " << time << " computed but not spiked" << std::endl;
 
-      if(u > threshold) // fire
+      //if(u > threshold) // fire
+      if(fired) // fire
       {
-        std::cout << key << " " << time << " spike" << std::endl;
+        //if(!fired)
+        //  std::cout << key << " " << time << " spiked but not computed" << std::endl;
         double du_dt = - u_m / tau_m - u_s / tau_s - u_r / tau_r;
         if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
           du_dt = .1;
