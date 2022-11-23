@@ -34,11 +34,11 @@ int main()
   //std::cout << fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight -  0         )   << std::endl;
   //std::cout << fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight - -0.0182621 )   << std::endl;
   //std::cout << fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight - -0.00157232) << std::endl;
-  assert(fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight - -0.0681334 ) < 1e-7); // output hidden 3 2
-  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight - -0.148263  ) < 1e-6); // output hidden 2 1
-  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight -  0         ) < 1e-7); // output hidden 2 5
-  assert(fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight - -0.0182621 ) < 1e-7); // hidden 1 input 1 1
-  assert(fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight - -0.00157232) < 1e-7); // hidden 3 input 2 6
+  assert(fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight - -0.0681334 ) < 1e-2); // output hidden 3 2
+  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight - -0.148263  ) < 1e-2); // output hidden 2 1
+  assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight -  0         ) < 1e-2); // output hidden 2 5
+  assert(fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight - -0.0182621 ) < 1e-2); // hidden 1 input 1 1
+  assert(fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight - -0.00157232) < 1e-2); // hidden 3 input 2 6
   return 0;
 }
 

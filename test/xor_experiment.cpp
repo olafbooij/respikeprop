@@ -9,7 +9,7 @@
 
 int main()
 {
-  auto seed = time(0);
+  //auto seed = 2; //time(0);
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;
