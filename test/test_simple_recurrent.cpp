@@ -9,8 +9,7 @@ int main()
 
   Neuron bounce("bounce");
   Neuron output("output");
-  bounce.tau_r = 4.0;
-  output.tau_r = 4.0;
+  const double learning_rate = 1e-2;
 
   auto add_synapse = [](auto& pre, auto& post, double weight, double delay)
   {
@@ -32,9 +31,8 @@ int main()
       bounce.forward_propagate(time, timestep);
       output.forward_propagate(time, timestep);
     }
-    std::cout << output.spikes.front() << std::endl;
+    //std::cout << output.spikes.front() << std::endl;
 
-    const double learning_rate = 1e-2;
     output.compute_delta_weights(learning_rate);
 
     auto adjust_weights = [](auto& neuron)
@@ -50,6 +48,7 @@ int main()
     adjust_weights(bounce);
     adjust_weights(output);
   }
+  assert(fabs(output.spikes.front() - output.clamped) < learning_rate);
 
   return 0;
 }

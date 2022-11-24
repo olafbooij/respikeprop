@@ -98,6 +98,7 @@ int main()
             n.compute_delta_weights(learning_rate);
             for(auto& synapse: n.incoming_synapses)
             {
+              //std::cout << n.key << " " << synapse.pre->key << " " << synapse.delay << " " << synapse.delta_weight << std::endl;
               synapse.weight += synapse.delta_weight;
               synapse.delta_weight = 0.;
             }

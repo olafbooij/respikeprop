@@ -44,10 +44,8 @@ namespace resp {
     // paper.
     double tau_m = 4.0;
     double tau_s = 2.0;
-    double tau_r = 20.0;
     double u_m;
     double u_s;
-    double u_r;
     double clamped = 0.;
     std::string key;
 
@@ -60,7 +58,7 @@ namespace resp {
         for(auto& incoming_synapse: incoming_connection.synapses)
           incoming_synapse.dt_dws.clear();
       }
-      u_m = u_s = u_r = 0;
+      u_m = u_s = 0;
     }
 
     void fire(double time)
@@ -81,62 +79,76 @@ namespace resp {
           for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < timestep); pre_spike++)
             if(time - *pre_spike - synapse.delay >= 0)  // might result in some hair-trigger problems
             {
-              u_m += synapse.weight;
+              u_m += synapse.weight;  // not exact, because of timestep quantification
               u_s -= synapse.weight;
             }
       }
       // update potentials
       u_m *= exp(- timestep / tau_m);  // could make this compile time by fixing timestep and tau's
       u_s *= exp(- timestep / tau_s);
-      u_r *= exp(- timestep / tau_r);
-      double u = u_m + u_s + u_r;
 
-      if(u > threshold) // fire
+      // compute exact future firing time
+      double D = u_m * u_m - 4 * u_s * -threshold;
+      if(D > 0)
       {
-        double du_dt = - u_m / tau_m - u_s / tau_s - u_r / tau_r;
-        if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
-          du_dt = .1;
-
-        for(auto& incoming_connection: incoming_connections)
+        double expdt = (- u_m - sqrt(D)) / (2 * u_s);
+        if(expdt > 0)
         {
-          incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
-          for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-            dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
-          for(auto& synapse: incoming_connection.synapses)
-            synapse.dt_dws.emplace_back(0.);
-
-          for(auto& synapse: incoming_connection.synapses)
-            for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
-            {
-              double s = time - pre_spike - synapse.delay;
-              if(s >= 0)
-              {
-                auto u_m1 =   synapse.weight * exp(-s / tau_m);
-                auto u_s1 = - synapse.weight * exp(-s / tau_s);
-                synapse.dt_dws.back() += - (u_m1 + u_s1) / synapse.weight;
-                dpret_dpostts.back() += - (u_m1 / tau_m + u_s1 / tau_s);
-              }
-            }
-
-          for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
+          double predict_spike = - log(expdt) * tau_m;
+          if(predict_spike <= 0 && predict_spike > -timestep)
           {
-            double s = time - ref_spike;
+            double spike_time = time + predict_spike;
+            store_gradients(spike_time);  // not exact, because of timestep quantification (u_m and u_s not on spike_time)
+            spikes.emplace_back(spike_time);
+            u_m -= threshold;  // not exact, because of timestep quantification
+          }
+        }
+      }
+    }
+
+    void store_gradients(double spike_time)
+    {
+      double du_dt = - u_m / tau_m - u_s / tau_s;
+      if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
+        du_dt = .1;
+
+      for(auto& incoming_connection: incoming_connections)
+      {
+        incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
+        for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
+          dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
+        for(auto& synapse: incoming_connection.synapses)
+          synapse.dt_dws.emplace_back(0.);
+
+        for(auto& synapse: incoming_connection.synapses)
+          for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
+          {
+            double s = spike_time - pre_spike - synapse.delay;
             if(s >= 0)
             {
-              double u_r1 = exp(-s / tau_r) / tau_r;
-              for(auto& synapse: incoming_connection.synapses)
-                synapse.dt_dws.back() += u_r1 * synapse.dt_dws.at(ref_spike_i);
-              for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-                dpret_dpostts.back()  += u_r1 * dpret_dpostts.at(ref_spike_i);
+              auto u_m1 =   synapse.weight * exp(-s / tau_m);
+              auto u_s1 = - synapse.weight * exp(-s / tau_s);
+              synapse.dt_dws.back() += - (u_m1 + u_s1) / synapse.weight;
+              dpret_dpostts.back() += - (u_m1 / tau_m + u_s1 / tau_s);
             }
           }
-          for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-            dpret_dpostts.back() /= du_dt;
-          for(auto& synapse: incoming_connection.synapses)
-            synapse.dt_dws.back() /= du_dt;
+
+        for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
+        {
+          double s = spike_time - ref_spike;
+          if(s >= 0)
+          {
+            double u_r1 = exp(-s / tau_m) / tau_m;
+            for(auto& synapse: incoming_connection.synapses)
+              synapse.dt_dws.back() += u_r1 * synapse.dt_dws.at(ref_spike_i);
+            for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
+              dpret_dpostts.back()  += u_r1 * dpret_dpostts.at(ref_spike_i);
+          }
         }
-        spikes.emplace_back(time);
-        u_r -= threshold;
+        for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
+          dpret_dpostts.back() /= du_dt;
+        for(auto& synapse: incoming_connection.synapses)
+          synapse.dt_dws.back() /= du_dt;
       }
     }
 
