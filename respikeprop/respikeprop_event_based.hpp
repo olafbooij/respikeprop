@@ -46,6 +46,7 @@ namespace resp {
     double tau_s = 2.0;
     double u_m;
     double u_s;
+    double last_update = 0.
     double clamped = 0.;
     std::string key;
 
@@ -68,42 +69,58 @@ namespace resp {
 
     // Forward propagate and store gradients for backpropagation. For now
     // keeping this as one function. To be refactored.
-    void forward_propagate(double time, double timestep)
+    double incoming_spike(double time, double weight)
     {
-      const double threshold = 1.;
-      // check recent incoming spikes
-      for(const auto& incoming_connection: incoming_connections)
-      {
-        auto& pre_spikes = incoming_connection.neuron->spikes;
-        for(const auto& synapse: incoming_connection.synapses)
-          for(auto pre_spike = pre_spikes.rbegin(); pre_spike != pre_spikes.rend() && (time - *pre_spike - synapse.delay < timestep); pre_spike++)
-            if(time - *pre_spike - synapse.delay >= 0)  // might result in some hair-trigger problems
-            {
-              u_m += synapse.weight;  // not exact, because of timestep quantification
-              u_s -= synapse.weight;
-            }
-      }
-      // update potentials
-      u_m *= exp(- timestep / tau_m);  // could make this compile time by fixing timestep and tau's
-      u_s *= exp(- timestep / tau_s);
+      // update potentials till just before incoming spike
+      u_m *= exp(- (time - last_update) / tau_m);  // could make this compile time by fixing timestep and tau's
+      u_s *= exp(- (time - last_update) / tau_s);
+
+      // adjust due to incoming spike
+      u_m += weight;
+      u_s -= weight;
 
       // compute exact future firing time
+      const double threshold = 1.;
       double D = u_m * u_m - 4 * u_s * -threshold;
+      double possible_spike = 0;
       if(D > 0)
       {
         double expdt = (- u_m - sqrt(D)) / (2 * u_s);
         if(expdt > 0)
         {
           double predict_spike = - log(expdt) * tau_m;
-          if(predict_spike <= 0 && predict_spike > -timestep)
-          {
-            double spike_time = time + predict_spike;
-            store_gradients(spike_time);  // not exact, because of timestep quantification (u_m and u_s not on spike_time)
-            spikes.emplace_back(spike_time);
-            u_m -= threshold;  // not exact, because of timestep quantification
-          }
+          if(predict_spike > 0)
+            return time + predict_spike;
         }
       }
+      return 0.;
+    }
+
+    void spike(double time)
+    {
+      // update potentials till just before incoming spike
+      u_m *= exp(- (time - last_update) / tau_m);
+      u_s *= exp(- (time - last_update) / tau_s);
+
+      store_gradients(time);
+      spikes.emplace_back(time);
+      u_m -= threshold;
+
+      // compute exact future firing time
+      const double threshold = 1.;
+      double D = u_m * u_m - 4 * u_s * -threshold;
+      double possible_spike = 0;
+      if(D > 0)
+      {
+        double expdt = (- u_m - sqrt(D)) / (2 * u_s);
+        if(expdt > 0)
+        {
+          double predict_spike = - log(expdt) * tau_m;
+          if(predict_spike > 0)
+            return time + predict_spike;
+        }
+      }
+      return 0.;
     }
 
     void store_gradients(double spike_time)
@@ -178,5 +195,57 @@ namespace resp {
           add_dE_dt(0, spikes.front() - clamped, learning_rate);
     }
   };
+
+
+  struct Events
+  {
+    struct SynapseSpike
+    {
+      Neuron* neuron;
+      double weight;
+      double time;
+      friend bool operator<(auto a, auto b){return a.time > b.time;};  // earliest on top
+    };
+    std::priority_queue<SynapseSpike> synapse_spikes;
+    struct NeuronSpike
+    {
+      Neuron* neuron;
+      double time;
+      friend bool operator<(auto a, auto b){return a.time > b.time;};  // earliest on top
+    };
+    std::vector<NeuronSpike> neuron_spikes;
+
+    void process_event()
+    {
+      // which one first
+      //compute_earliest_neuron_spike
+      auto neuron_spike = std::max_element(neuron_spikes.begin(), neuron_spikes.end());
+      auto& synapse_spike = synapse_spikes.top();
+      if(synapse_spike.time < neuron_spike->time)
+      { // process synapse
+        // remove neuron's fire-time
+        auto existing_spike =  std::find(neuron_spikes.begin(), neuron_spikes.end(), [neuron_spike](const auto& n){return neuron_spike.neuron == n.neuron;});
+        if(existing_spike != neuron_spikes.end())
+          neuron_spikes.erase(existing_spike);
+        // compute possible next one
+        auto future_spike = synapse_spike.neuron->incoming_spike(synapse_spike.time, synapse_spike.weight);
+        // add it if it is
+        if(future_spike > 0)
+          neuron_spikes.emplace_back(synapse_spike.neuron, future_spike);
+        synapse_spikes.pop();
+      }
+      else
+      { // process neuron
+        //neuron -> fire (update gradients etc), update  update synapse queue
+        auto future_spike = euron_spike->neuron->spike(neuron_spike->time);
+        if(future_spike > 0)
+          neuron_spikes.emplace_back(neuron_spike->neuron, future_spike);
+        // TODO update post_synapses... should know them....
+
+        neuron_spikes.erase(neuron_spike);
+      }
+    }
+  };
+
 }
 
