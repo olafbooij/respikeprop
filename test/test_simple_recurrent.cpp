@@ -9,8 +9,6 @@ int main()
 
   Neuron bounce("bounce");
   Neuron output("output");
-  bounce.tau_r = 4.0;
-  output.tau_r = 4.0;
   const double learning_rate = 1e-2;
 
   auto add_synapse = [](auto& pre, auto& post, double weight, double delay)
