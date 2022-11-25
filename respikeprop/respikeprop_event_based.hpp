@@ -1,6 +1,7 @@
 #pragma once
 
 #include<vector>
+#include<queue>
 #include<cmath>
 #include<range/v3/view/zip.hpp>
 #include<range/v3/view/enumerate.hpp>
@@ -46,7 +47,7 @@ namespace resp {
     double tau_s = 2.0;
     double u_m;
     double u_s;
-    double last_update = 0.
+    double last_update = 0.;
     double clamped = 0.;
     std::string key;
 
@@ -96,8 +97,9 @@ namespace resp {
       return 0.;
     }
 
-    void spike(double time)
+    double spike(double time)
     {
+      const double threshold = 1.;
       // update potentials till just before incoming spike
       u_m *= exp(- (time - last_update) / tau_m);
       u_s *= exp(- (time - last_update) / tau_s);
@@ -107,7 +109,6 @@ namespace resp {
       u_m -= threshold;
 
       // compute exact future firing time
-      const double threshold = 1.;
       double D = u_m * u_m - 4 * u_s * -threshold;
       double possible_spike = 0;
       if(D > 0)
@@ -194,6 +195,7 @@ namespace resp {
         if(! spikes.empty())
           add_dE_dt(0, spikes.front() - clamped, learning_rate);
     }
+    void forward_propagate(double, double) {};
   };
 
 
@@ -211,20 +213,24 @@ namespace resp {
     {
       Neuron* neuron;
       double time;
-      friend bool operator<(auto a, auto b){return a.time > b.time;};  // earliest on top
+      //friend bool operator<(auto a, auto b){return a.time > b.time;};  // earliest on top
     };
     std::vector<NeuronSpike> neuron_spikes;
+    bool active()
+    {
+      return ! (neuron_spikes.empty() && synapse_spikes.empty());
+    }
 
     void process_event()
     {
       // which one first
       //compute_earliest_neuron_spike
-      auto neuron_spike = std::max_element(neuron_spikes.begin(), neuron_spikes.end());
+      auto neuron_spike = std::max_element(neuron_spikes.begin(), neuron_spikes.end(), [](auto a, auto b){return a.time > b.time;});
       auto& synapse_spike = synapse_spikes.top();
       if(synapse_spike.time < neuron_spike->time)
       { // process synapse
         // remove neuron's fire-time
-        auto existing_spike =  std::find(neuron_spikes.begin(), neuron_spikes.end(), [neuron_spike](const auto& n){return neuron_spike.neuron == n.neuron;});
+        auto existing_spike =  std::find_if(neuron_spikes.begin(), neuron_spikes.end(), [neuron_spike](const auto& n){return neuron_spike->neuron == n.neuron;});
         if(existing_spike != neuron_spikes.end())
           neuron_spikes.erase(existing_spike);
         // compute possible next one
@@ -237,7 +243,7 @@ namespace resp {
       else
       { // process neuron
         //neuron -> fire (update gradients etc), update  update synapse queue
-        auto future_spike = euron_spike->neuron->spike(neuron_spike->time);
+        auto future_spike = neuron_spike->neuron->spike(neuron_spike->time);
         if(future_spike > 0)
           neuron_spikes.emplace_back(neuron_spike->neuron, future_spike);
         // TODO update post_synapses... should know them....

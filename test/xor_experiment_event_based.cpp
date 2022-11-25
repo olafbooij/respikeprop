@@ -2,6 +2,7 @@
 #include<array>
 #include<random>
 #include<ctime>
+#include<range/v3/view/zip.hpp>
 #include<respikeprop/respikeprop_event_based.hpp>
 #include<test/xor_experiment.hpp>
 
@@ -35,8 +36,15 @@ int main()
       for(auto sample: get_xor_dataset())
       {
         clear(network);
-        load_sample(network, sample);
-        propagate(network, 40., timestep);
+        Events events;
+        { //load_sample(network, sample);
+          auto& [input_layer, _, output_layer] = network;
+          for(const auto& [input_neuron, input_sample]: ranges::views::zip(input_layer, sample.input))
+            events.neuron_spikes.emplace_back(&input_neuron, input_sample);
+          output_layer.at(0).clamped = sample.output;
+        }
+        while(network.back().at(0).spikes.empty() && events.active()) // does not work with recurency, then should check on time
+          events.process_event();
         if(output_neuron.spikes.empty())
         {
           std::cout << "No output spikes! Replacing with different trial. " << std::endl;
