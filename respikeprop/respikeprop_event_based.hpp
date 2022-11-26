@@ -223,12 +223,14 @@ namespace resp {
 
     void process_event()
     {
+      if(synapse_spikes.empty() && neuron_spikes.empty())
+        return;
       // which one first
       //compute_earliest_neuron_spike
       auto neuron_spike = std::max_element(neuron_spikes.begin(), neuron_spikes.end(), [](auto a, auto b){return a.time > b.time;});
-      auto& synapse_spike = synapse_spikes.top();
-      if(synapse_spike.time < neuron_spike->time)
+      if(neuron_spikes.empty() || (! synapse_spikes.empty() && synapse_spikes.top().time < neuron_spike->time))
       { // process synapse
+        auto& synapse_spike = synapse_spikes.top();
         // remove neuron's fire-time
         auto existing_spike =  std::find_if(neuron_spikes.begin(), neuron_spikes.end(), [neuron_spike](const auto& n){return neuron_spike->neuron == n.neuron;});
         if(existing_spike != neuron_spikes.end())
