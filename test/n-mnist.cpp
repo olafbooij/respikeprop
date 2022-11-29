@@ -2,6 +2,8 @@
 #include<iostream>
 #include<vector>
 #include<fstream>
+#include<filesystem>
+#include<ranges>
 
 namespace resp
 {
@@ -13,7 +15,7 @@ namespace resp
     int timestamp;
   };
 
-  auto load_spike_pattern(auto&& file)
+  auto load_events(auto&& file)
   {
     std::vector<Event> events;
     while(file.good())
@@ -32,16 +34,28 @@ namespace resp
     }
     return events;
   }
+
+  struct Pattern
+  {
+    std::vector<Event> events;
+    int label;
+  };
+  auto load_spike_pattern(auto&& file, int label)
+  {
+    return Pattern(load_events(file), label);
+  }
+
 }
 
 int main()
 {
-  using namespace std;
   using namespace resp;
-  auto events = load_spike_pattern(std::ifstream("datasets/n-mnist/Train/0/00002.bin", std::ios::binary));
-
-  for(auto event: events)
-    std::cout << static_cast<int>(event.x) << " " << static_cast<int>(event.y) << " " << event.polarity << " " << event.timestamp << std::endl;
+  std::cout << "Loading spike patterns..." << std::endl;
+  std::vector<Pattern> spike_patterns;
+  for(const auto label : std::views::iota(0, 10))
+    for (auto const& file : std::filesystem::directory_iterator{"datasets/n-mnist/Train/"+ std::to_string(label)}) 
+      spike_patterns.emplace_back(load_spike_pattern(std::ifstream(file.path(), std::ios::binary), label));
+  std::cout << "Loaded " << spike_patterns.size() << " patterns" << std::endl;
 
   return 0;
 }
