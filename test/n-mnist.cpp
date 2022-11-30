@@ -80,9 +80,10 @@ int main()
   for(int epoch = 0; epoch < 10; ++epoch)
   {
     //double sum_squared_error_epoch = 0;
-    int batch_size = 0;
+    const int batch_size = 10;
     double sum_squared_error_batch = 0;
-    for(auto pattern: spike_patterns)
+    double sum_squared_error_epoch = 0;
+    for(const auto& [pattern_i, pattern]: ranges::views::enumerate(spike_patterns))
     {
       double sum_squared_error_pattern = 0;
       clear(network);
@@ -123,13 +124,12 @@ int main()
         }
       //std::cout << sum_squared_error_pattern << std::endl;
       sum_squared_error_batch += sum_squared_error_pattern;
+      sum_squared_error_epoch += sum_squared_error_pattern;
 
       // Backward propagation and changing weights (no batch-mode)
       for(auto& neuron: network.back())
         neuron.compute_delta_weights(learning_rate);
-      if(batch_size < 10)
-        ++batch_size;
-      else
+      if((pattern_i + 1) % batch_size == 0)
       {
         // perhaps do the following in batch mode:
         for(auto& layer: network)
@@ -140,12 +140,11 @@ int main()
                 synapse.weight += synapse.delta_weight;
                 synapse.delta_weight = 0.;
               }
-        std::cout << "batch error " << sum_squared_error_batch << std::endl;
-        batch_size = 0;
+        std::cout << pattern_i << " " << sum_squared_error_batch / batch_size << std::endl;
         sum_squared_error_batch = 0;
       }
     }
-    //std::cout << " " << epoch << " " << sum_squared_error << std::endl;
+    std::cout << epoch  << " " << sum_squared_error_epoch / spike_patterns.size() << std::endl;
     // Stopping criterion
     //if(sum_squared_error < 1.0)
     //  break;
