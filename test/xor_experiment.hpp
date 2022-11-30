@@ -32,8 +32,11 @@ namespace resp
 
   void propagate(auto& network, const double maxtime, const double timestep)
   {
-    bool not_all_outputs_spiked = std::ranges::any_of(network.back(), [](auto& n){ return n.spikes.empty();});
-    for(double time = 0.; time < maxtime && not_all_outputs_spiked; time += timestep)
+    auto not_all_outputs_spiked = [&network]()
+    {
+      return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+    };
+    for(double time = 0.; time < maxtime && not_all_outputs_spiked(); time += timestep)
       for(auto& layer: network)
         for(auto& n: layer)
           n.forward_propagate(time, timestep);
