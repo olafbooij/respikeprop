@@ -4,6 +4,15 @@
 #include<respikeprop/respikeprop_store_gradients.hpp>
 #include<test/xor_experiment.hpp>
 
+// A script that applies the respikeprop to the N-MNIST dataset. Here we only
+// learn 0's and 1's. The spiketrains per sample are decimated to 200 events
+// (of the usual 3000~6000). Polarity of events is not used. Training time is
+// approx 3 minutes (on a simple laptop).
+//
+// The dataset should be downloaded from
+// https://www.garrickorchard.com/datasets/n-mnist
+// and put in "datasets/n-mnist/".
+
 namespace resp
 {
   void load_n_mnist_sample(auto& network, const auto& pattern)
@@ -23,7 +32,6 @@ namespace resp
     connect_layers(input_layer, hidden_layer);
     connect_layers(hidden_layer, output_layer);
 
-    // Set random weights
     for(auto& layer: network)
       for(auto& n: layer)
         for(auto& incoming_connection: n.incoming_connections)
@@ -32,7 +40,6 @@ namespace resp
   }
 }
 
-// Dataset can be downloaded from https://www.garrickorchard.com/datasets/n-mnist
 int main()
 {
   auto seed = time(0);
@@ -42,6 +49,7 @@ int main()
 
   const double timestep = .1;
   const double learning_rate = 1e-4;
+  const int batch_size = 10;
 
   // create network
   std::array network{std::vector<Neuron>(28*28),
@@ -58,46 +66,39 @@ int main()
           synapse.weight *= .05;  // weights smaller
         }
 
+  // creating train and validation set
   std::cout << "Loading spike patterns..." << std::endl;
   std::vector<Pattern> spike_patterns = load_n_mnist_training(.011, random_gen, std::array{0, 1});
   std::cout << "Loaded " << spike_patterns.size() << " patterns" << std::endl;
   std::ranges::shuffle(spike_patterns, random_gen);
-  const size_t test_size = spike_patterns.size() / 10;
-  std::vector<Pattern> spike_patterns_train(spike_patterns.begin(), spike_patterns.end() - test_size);
-  std::vector<Pattern> spike_patterns_test(spike_patterns.end() - test_size, spike_patterns.end());
-  auto spike_patterns_test_decimated = decimate_events(spike_patterns_test, 200, random_gen);
+  const size_t validation_size = spike_patterns.size() / 10;
+  std::vector<Pattern> spike_patterns_train(spike_patterns.begin(), spike_patterns.end() - validation_size);
+  std::vector<Pattern> spike_patterns_validation(spike_patterns.end() - validation_size, spike_patterns.end());
+  auto spike_patterns_validation_decimated = decimate_events(spike_patterns_validation, 200, random_gen);
 
-  // create training scheme
   for(int epoch = 0; epoch < 10; ++epoch)
   {
     auto spike_patterns_decimated = decimate_events(spike_patterns_train, 200, random_gen);
-    //double sum_squared_error_epoch = 0;
-    const int batch_size = 10;
     double sum_squared_error_batch = 0;
     double sum_squared_error_epoch = 0;
     for(const auto& [pattern_i, pattern]: ranges::views::enumerate(spike_patterns_decimated))
     {
-      double sum_squared_error_pattern = 0;
       clear(network);
       load_n_mnist_sample(network, pattern);
       propagate(network, 100., timestep);
 
+      double sum_squared_error_pattern = 0;
       for(auto& neuron: network.back())
         if(! neuron.spikes.empty())
-        {
           sum_squared_error_pattern += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
-          //std::cout << neuron.key << " " << neuron.clamped << " " << neuron.spikes.front() << std::endl;
-        }
-      //std::cout << sum_squared_error_pattern << std::endl;
       sum_squared_error_batch += sum_squared_error_pattern;
       sum_squared_error_epoch += sum_squared_error_pattern;
 
-      // Backward propagation and changing weights (no batch-mode)
+      // Backpropagation and changing weights
       for(auto& neuron: network.back())
         neuron.compute_delta_weights(learning_rate);
       if((pattern_i + 1) % batch_size == 0)
       {
-        // perhaps do the following in batch mode:
         for(auto& layer: network)
           for(auto& n: layer)
             for(auto& incoming_connection: n.incoming_connections)
@@ -106,26 +107,23 @@ int main()
                 synapse.weight += synapse.delta_weight;
                 synapse.delta_weight = 0.;
               }
-        std::cout << pattern_i << " " << sum_squared_error_batch / batch_size << std::endl;
+        std::cout << "batch loss after pattern " << pattern_i + 1 << " " << sum_squared_error_batch / batch_size << std::endl;
         sum_squared_error_batch = 0;
       }
     }
-    std::cout << epoch  << " train error " << sum_squared_error_epoch / spike_patterns_train.size() << std::endl;
-    // Stopping criterion
-    //if(sum_squared_error < 1.0)
-    //  break;
+    std::cout << "train loss after epoch "<< epoch  << " " << sum_squared_error_epoch / spike_patterns_train.size() << std::endl;
     {
-      double sum_squared_error_test = 0;
-      for(const auto& pattern: spike_patterns_test_decimated)
+      double sum_squared_error_validation = 0;
+      for(const auto& pattern: spike_patterns_validation_decimated)
       {
         clear(network);
         load_n_mnist_sample(network, pattern);
         propagate(network, 100., timestep);
         for(auto& neuron: network.back())
           if(! neuron.spikes.empty())
-            sum_squared_error_test += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
+            sum_squared_error_validation += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
       }
-      std::cout << epoch  << " test  error " << sum_squared_error_test / spike_patterns_test_decimated.size() << std::endl;
+      std::cout << "validation loss after epoch "<< epoch  << " " << sum_squared_error_validation / spike_patterns_validation.size() << std::endl;
     }
   }
 
