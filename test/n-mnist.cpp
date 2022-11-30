@@ -38,6 +38,15 @@ namespace resp
           for(auto& synapse: incoming_connection.synapses)
             synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
   }
+  std::size_t first_spike_result(auto& network)
+  {
+    auto output = std::ranges::min_element(network.back(), [](auto& a, auto& b){
+      if(a.spikes.empty()) return false;
+      if(b.spikes.empty()) return true;
+      return a.spikes.front() < b.spikes.front();
+    });
+    return ranges::distance(network.back().begin(), output);
+  }
 }
 
 int main()
@@ -95,8 +104,7 @@ int main()
           loss_pattern += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
       loss_batch += loss_pattern;
       loss_epoch += loss_pattern;
-      auto output = std::ranges::min_element(network.back(), [](auto& a, auto& b){return a.spikes.front() < b.spikes.front();});
-      if(ranges::distance(network.back().begin(), output) != pattern.label)
+      if(first_spike_result(network) != pattern.label)
         ++error_epoch;
 
       // Backpropagation and changing weights
@@ -129,8 +137,7 @@ int main()
         for(auto& neuron: network.back())
           if(! neuron.spikes.empty())
             loss_validation += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
-        auto output = std::ranges::min_element(network.back(), [](auto& a, auto& b){return a.spikes.front() < b.spikes.front();});
-        if(ranges::distance(network.back().begin(), output) != pattern.label)
+        if(first_spike_result(network) != pattern.label)
           ++error_validation;
       }
       std::cout << "validation loss  after epoch "<< epoch  << " " << loss_validation / spike_patterns_validation.size() << std::endl;
