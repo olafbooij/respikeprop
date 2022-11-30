@@ -43,47 +43,41 @@ int main()
   const double timestep = .1;
   const double learning_rate = 1e-4;
 
-  // create network (convolutions????)
-  //e.g.  28 * 28 x  10 x 10;
+  // create network
   std::array network{std::vector<Neuron>(28*28),
                      std::vector<Neuron>(10),
                      create_layer({"O0", "O1"})};
                      //create_layer({"O0", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9"})};
-  // and some delay lines...
-  // that would be e.g. (28*28*10+10*10)*16 = 127040 synapses = 400x xor -> 400* .015 sec = 6 sec to train : - )
-  // well.... times 60000 / 4 pat/pat= 15000 -> 24 hrs...
-  // so somewhere between 6 secs and 24 hrs.
   init_network_n_mnist(network, random_gen);
-  // make time delays a bit bigger {2, 4, 6, ..., 32}
   for(auto& layer: network)
     for(auto& n: layer)
       for(auto& incoming_connection: n.incoming_connections)
         for(auto& synapse: incoming_connection.synapses)
         {
-          synapse.delay *= 2;
-          synapse.weight *= .05;
+          synapse.delay *= 2;     // time delays a bit bigger {2, 4, 6, ..., 32}
+          synapse.weight *= .05;  // weights smaller
         }
 
   std::cout << "Loading spike patterns..." << std::endl;
   std::vector<Pattern> spike_patterns = load_n_mnist_training(.01, random_gen, std::array{0, 1});
   std::cout << "Loaded " << spike_patterns.size() << " patterns" << std::endl;
   std::ranges::shuffle(spike_patterns, random_gen);
-  // decimate events:
-  for(auto& pattern: spike_patterns)
-  {
-    std::vector<Event> subset;
-    std::ranges::sample(pattern.events, std::back_inserter(subset), 200, random_gen);
-    pattern.events = subset;
-  }
 
   // create training scheme
   for(int epoch = 0; epoch < 10; ++epoch)
   {
+    std::vector<Pattern> spike_patterns_decimated;
+    for(const auto& pattern: spike_patterns)
+    {
+      std::vector<Event> subset;
+      std::ranges::sample(pattern.events, std::back_inserter(subset), 200, random_gen);
+      spike_patterns_decimated.emplace_back(subset, pattern.label);
+    }
     //double sum_squared_error_epoch = 0;
     const int batch_size = 10;
     double sum_squared_error_batch = 0;
     double sum_squared_error_epoch = 0;
-    for(const auto& [pattern_i, pattern]: ranges::views::enumerate(spike_patterns))
+    for(const auto& [pattern_i, pattern]: ranges::views::enumerate(spike_patterns_decimated))
     {
       double sum_squared_error_pattern = 0;
       clear(network);
