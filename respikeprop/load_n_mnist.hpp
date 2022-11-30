@@ -47,14 +47,18 @@ namespace resp
     return Pattern(load_events(file), label);
   }
 
-  auto load_n_mnist_training(double part, auto& random_gen)
+  auto load_n_mnist_training(double part, auto& random_gen, auto&& labels)
   {
     std::vector<Pattern> spike_patterns;
-    for(const auto label : std::views::iota(0, 10))
+    for(const auto label : labels)
       for (auto const& file : std::filesystem::directory_iterator{"datasets/n-mnist/Train/" + std::to_string(label)}) 
         if(std::uniform_real_distribution<>()(random_gen) < part)
           spike_patterns.emplace_back(load_spike_pattern(std::ifstream(file.path(), std::ios::binary), label));
     return spike_patterns;
+  }
+  auto load_n_mnist_training(double part, auto& random_gen)
+  {
+    return load_n_mnist_training(part, random_gen, std::views::iota(0, 10));
   }
 
 }

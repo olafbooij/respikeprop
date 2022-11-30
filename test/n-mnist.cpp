@@ -14,8 +14,21 @@ namespace resp
 
     // not doing anything with polarity.... should perhaps have 2 inputs per pixel...
     for(auto& neuron: output_layer)
-      neuron.clamped = 60;
-    output_layer.at(pattern.label).clamped = 40;
+      neuron.clamped = 40;
+    output_layer.at(pattern.label).clamped = 30;
+  }
+  void init_network_n_mnist(auto& network, auto& random_gen)
+  {
+    auto& [input_layer, hidden_layer, output_layer] = network;
+    connect_layers(input_layer, hidden_layer);
+    connect_layers(hidden_layer, output_layer);
+
+    // Set random weights
+    for(auto& layer: network)
+      for(auto& n: layer)
+        for(auto& incoming_connection: n.incoming_connections)
+          for(auto& synapse: incoming_connection.synapses)
+            synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
   }
 }
 
@@ -28,27 +41,31 @@ int main()
   using namespace resp;
 
   const double timestep = .1;
-  const double learning_rate = 1e-2;
+  const double learning_rate = 1e-4;
 
   // create network (convolutions????)
   //e.g.  28 * 28 x  10 x 10;
   std::array network{std::vector<Neuron>(28*28),
                      std::vector<Neuron>(10),
-                     create_layer({"O0", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9"})};
+                     create_layer({"O0", "O1"})};
+                     //create_layer({"O0", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9"})};
   // and some delay lines...
   // that would be e.g. (28*28*10+10*10)*16 = 127040 synapses = 400x xor -> 400* .015 sec = 6 sec to train : - )
   // well.... times 60000 / 4 pat/pat= 15000 -> 24 hrs...
   // so somewhere between 6 secs and 24 hrs.
-  init_network(network, random_gen);
+  init_network_n_mnist(network, random_gen);
   // make time delays a bit bigger {2, 4, 6, ..., 32}
   for(auto& layer: network)
     for(auto& n: layer)
       for(auto& incoming_connection: n.incoming_connections)
         for(auto& synapse: incoming_connection.synapses)
+        {
           synapse.delay *= 2;
+          synapse.weight *= .05;
+        }
 
   std::cout << "Loading spike patterns..." << std::endl;
-  auto spike_patterns = load_n_mnist_training(.01, random_gen);
+  std::vector<Pattern> spike_patterns = load_n_mnist_training(.01, random_gen, std::array{0, 1});
   std::cout << "Loaded " << spike_patterns.size() << " patterns" << std::endl;
   std::shuffle(spike_patterns.begin(), spike_patterns.end(), random_gen);
 
@@ -61,7 +78,7 @@ int main()
       double sum_squared_error_pattern = 0;
       clear(network);
       load_n_mnist_sample(network, pattern);
-        
+
       propagate(network, 100., timestep);
       //TODO change to all output neurons:
       //if(output_neuron.spikes.empty())
@@ -70,6 +87,25 @@ int main()
       //  trial -= 1;
       //  sum_squared_error = epoch = 1e9; break;
       //}
+
+      {
+        int nr_of_spikes = 0;
+        for(auto& layer: network)
+          for(auto& n: layer)
+            nr_of_spikes += n.spikes.size();
+        std::cout << nr_of_spikes << std::endl;
+      }
+
+      //// punish for not spiking
+      //// does not work...
+      //for(auto& layer: network)
+      //  for(auto& neuron: layer)
+      //    if(neuron.spikes.empty())
+      //    {
+      //      neuron.store_gradients(80.0);
+      //      neuron.spikes.emplace_back(80.0);
+      //    }
+
       for(auto& neuron: network.back())
         if(! neuron.spikes.empty())
         {
@@ -80,7 +116,7 @@ int main()
 
       // Backward propagation and changing weights (no batch-mode)
       for(auto& neuron: network.back())
-        neuron.compute_delta_weights(learning_rate); 
+        neuron.compute_delta_weights(learning_rate);
       // perhaps do the following in batch mode:
       for(auto& layer: network)
         for(auto& n: layer)

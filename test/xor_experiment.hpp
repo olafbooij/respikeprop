@@ -81,15 +81,15 @@ namespace resp
           synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
 
     for(auto& n: output_layer)
-    for(auto& incoming_connection: n.incoming_connections)
-    {
-      if(incoming_connection.neuron->key == "hidden 5")
-        for(auto& synapse: incoming_connection.synapses)
-          synapse.weight = std::uniform_real_distribution<>(-.5, 0.)(random_gen);
-      else
-        for(auto& synapse: incoming_connection.synapses)
-          synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
-    }
+      for(auto& incoming_connection: n.incoming_connections)
+      {
+        if(incoming_connection.neuron->key == "hidden 5")
+          for(auto& synapse: incoming_connection.synapses)
+            synapse.weight = std::uniform_real_distribution<>(-.5, 0.)(random_gen);
+        else
+          for(auto& synapse: incoming_connection.synapses)
+            synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
+      }
   }
 
 }
