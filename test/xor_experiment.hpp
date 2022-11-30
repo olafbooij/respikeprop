@@ -30,7 +30,8 @@ namespace resp
 
   void propagate(auto& network, const double maxtime, const double timestep)
   {
-    for(double time = 0.; time < maxtime && network.back().at(0).spikes.empty(); time += timestep)
+    //for(double time = 0.; time < maxtime && network.back().at(0).spikes.empty(); time += timestep)
+    for(double time = 0.; time < maxtime; time += timestep)
       for(auto& layer: network)
         for(auto& n: layer)
           n.forward_propagate(time, timestep);
@@ -79,7 +80,8 @@ namespace resp
         for(auto& synapse: incoming_connection.synapses)
           synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
 
-    for(auto& incoming_connection: output_layer.front().incoming_connections)
+    for(auto& n: output_layer)
+    for(auto& incoming_connection: n.incoming_connections)
     {
       if(incoming_connection.neuron->key == "hidden 5")
         for(auto& synapse: incoming_connection.synapses)
