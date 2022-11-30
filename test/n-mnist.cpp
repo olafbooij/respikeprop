@@ -1,4 +1,5 @@
 #include<iostream>
+#include<algorithm>
 #include<respikeprop/load_n_mnist.hpp>
 #include<respikeprop/respikeprop_store_gradients.hpp>
 #include<test/xor_experiment.hpp>
@@ -49,6 +50,7 @@ int main()
   std::cout << "Loading spike patterns..." << std::endl;
   auto spike_patterns = load_n_mnist_training(.01, random_gen);
   std::cout << "Loaded " << spike_patterns.size() << " patterns" << std::endl;
+  std::shuffle(spike_patterns.begin(), spike_patterns.end(), random_gen);
 
   // create training scheme
   for(int epoch = 0; epoch < 10; ++epoch)
