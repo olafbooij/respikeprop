@@ -1,5 +1,6 @@
 #pragma once
 
+#include<algorithm>
 #include<vector>
 #include<fstream>
 #include<filesystem>
@@ -59,6 +60,18 @@ namespace resp
   auto load_n_mnist_training(double part, auto& random_gen)
   {
     return load_n_mnist_training(part, random_gen, std::views::iota(0, 10));
+  }
+
+  auto decimate_events(const auto& patterns, const std::size_t nr_of_events, auto& random_gen)
+  {
+    std::vector<Pattern> patterns_decimated;
+    for(const auto& pattern: patterns)
+    {
+      std::vector<Event> subset;
+      std::ranges::sample(pattern.events, std::back_inserter(subset), nr_of_events, random_gen);
+      patterns_decimated.emplace_back(subset, pattern.label);
+    }
+    return patterns_decimated;
   }
 
 }

@@ -59,20 +59,18 @@ int main()
         }
 
   std::cout << "Loading spike patterns..." << std::endl;
-  std::vector<Pattern> spike_patterns = load_n_mnist_training(.01, random_gen, std::array{0, 1});
+  std::vector<Pattern> spike_patterns = load_n_mnist_training(.011, random_gen, std::array{0, 1});
   std::cout << "Loaded " << spike_patterns.size() << " patterns" << std::endl;
   std::ranges::shuffle(spike_patterns, random_gen);
+  const size_t test_size = spike_patterns.size() / 10;
+  std::vector<Pattern> spike_patterns_train(spike_patterns.begin(), spike_patterns.end() - test_size);
+  std::vector<Pattern> spike_patterns_test(spike_patterns.end() - test_size, spike_patterns.end());
+  auto spike_patterns_test_decimated = decimate_events(spike_patterns_test, 200, random_gen);
 
   // create training scheme
   for(int epoch = 0; epoch < 10; ++epoch)
   {
-    std::vector<Pattern> spike_patterns_decimated;
-    for(const auto& pattern: spike_patterns)
-    {
-      std::vector<Event> subset;
-      std::ranges::sample(pattern.events, std::back_inserter(subset), 200, random_gen);
-      spike_patterns_decimated.emplace_back(subset, pattern.label);
-    }
+    auto spike_patterns_decimated = decimate_events(spike_patterns_train, 200, random_gen);
     //double sum_squared_error_epoch = 0;
     const int batch_size = 10;
     double sum_squared_error_batch = 0;
@@ -82,33 +80,7 @@ int main()
       double sum_squared_error_pattern = 0;
       clear(network);
       load_n_mnist_sample(network, pattern);
-
       propagate(network, 100., timestep);
-      //TODO change to all output neurons:
-      //if(output_neuron.spikes.empty())
-      //{
-      //  std::cout << "No output spikes! Replacing with different trial. " << std::endl;
-      //  trial -= 1;
-      //  sum_squared_error = epoch = 1e9; break;
-      //}
-
-      //{
-      //  int nr_of_spikes = 0;
-      //  for(auto& layer: network)
-      //    for(auto& n: layer)
-      //      nr_of_spikes += n.spikes.size();
-      //  std::cout << nr_of_spikes << std::endl;
-      //}
-
-      //// punish for not spiking
-      //// does not work...
-      //for(auto& layer: network)
-      //  for(auto& neuron: layer)
-      //    if(neuron.spikes.empty())
-      //    {
-      //      neuron.store_gradients(80.0);
-      //      neuron.spikes.emplace_back(80.0);
-      //    }
 
       for(auto& neuron: network.back())
         if(! neuron.spikes.empty())
@@ -138,10 +110,23 @@ int main()
         sum_squared_error_batch = 0;
       }
     }
-    std::cout << epoch  << " " << sum_squared_error_epoch / spike_patterns.size() << std::endl;
+    std::cout << epoch  << " train error " << sum_squared_error_epoch / spike_patterns_train.size() << std::endl;
     // Stopping criterion
     //if(sum_squared_error < 1.0)
     //  break;
+    {
+      double sum_squared_error_test = 0;
+      for(const auto& pattern: spike_patterns_test_decimated)
+      {
+        clear(network);
+        load_n_mnist_sample(network, pattern);
+        propagate(network, 100., timestep);
+        for(auto& neuron: network.back())
+          if(! neuron.spikes.empty())
+            sum_squared_error_test += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
+      }
+      std::cout << epoch  << " test  error " << sum_squared_error_test / spike_patterns_test_decimated.size() << std::endl;
+    }
   }
 
   return 0;
