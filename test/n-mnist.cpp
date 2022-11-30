@@ -47,6 +47,16 @@ namespace resp
     });
     return ranges::distance(network.back().begin(), output);
   }
+
+  auto compute_loss(const auto& network)
+  {
+    double loss_pattern = 0;
+    for(auto& neuron: network.back())
+      if(! neuron.spikes.empty())
+        loss_pattern += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
+    return loss_pattern;
+  }
+
 }
 
 int main()
@@ -94,23 +104,21 @@ int main()
     int error_epoch = 0;
     for(const auto& [pattern_i, pattern]: ranges::views::enumerate(spike_patterns_decimated))
     {
+      // forward
       clear(network);
       load_n_mnist_sample(network, pattern);
       propagate(network, 100., timestep);
 
-      double loss_pattern = 0;
-      for(auto& neuron: network.back())
-        if(! neuron.spikes.empty())
-          loss_pattern += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
-      loss_batch += loss_pattern;
-      loss_epoch += loss_pattern;
-      if(first_spike_result(network) != pattern.label)
-        ++error_epoch;
+      // update logs
+      loss_batch += compute_loss(network);
+      if(first_spike_result(network) != pattern.label) error_epoch++;
 
-      // Backpropagation and changing weights
+      // backprop
       for(auto& neuron: network.back())
         neuron.compute_delta_weights(learning_rate);
-      if((pattern_i + 1) % batch_size == 0)
+
+      // per batch change weights and report logs
+      if((pattern_i + 1) % batch_size == 0 || pattern_i + 1 == spike_patterns_decimated.size())
       {
         for(auto& layer: network)
           for(auto& n: layer)
@@ -121,9 +129,11 @@ int main()
                 synapse.delta_weight = 0.;
               }
         std::cout << "batch loss after pattern " << pattern_i + 1 << " " << loss_batch / batch_size << std::endl;
+        loss_epoch += loss_batch;
         loss_batch = 0;
       }
     }
+    // report epoch logs
     std::cout << "train loss after epoch  "<< epoch  << " " << loss_epoch / spike_patterns_train.size() << std::endl;
     std::cout << "train error after epoch "<< epoch  << " " << 100 * double(error_epoch) / spike_patterns_train.size() << " %" << std::endl;
     {
@@ -134,11 +144,8 @@ int main()
         clear(network);
         load_n_mnist_sample(network, pattern);
         propagate(network, 100., timestep);
-        for(auto& neuron: network.back())
-          if(! neuron.spikes.empty())
-            loss_validation += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
-        if(first_spike_result(network) != pattern.label)
-          ++error_validation;
+        loss_validation += compute_loss(network);
+        if(first_spike_result(network) != pattern.label) ++error_validation;
       }
       std::cout << "validation loss  after epoch "<< epoch  << " " << loss_validation / spike_patterns_validation.size() << std::endl;
       std::cout << "validation error after epoch "<< epoch  << " " << 100 * double(error_validation) / spike_patterns_validation.size() << " %" << std::endl;
