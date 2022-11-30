@@ -1,5 +1,8 @@
 #pragma once
 #include<array>
+#include<random>
+#include<ranges>
+#include<algorithm>
 #include<vector>
 
 namespace resp
@@ -29,7 +32,11 @@ namespace resp
 
   void propagate(auto& network, const double maxtime, const double timestep)
   {
-    for(double time = 0.; time < maxtime && network.back().at(0).spikes.empty(); time += timestep)
+    auto not_all_outputs_spiked = [&network]()
+    {
+      return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+    };
+    for(double time = 0.; time < maxtime && not_all_outputs_spiked(); time += timestep)
       for(auto& layer: network)
         for(auto& n: layer)
           n.forward_propagate(time, timestep);
@@ -78,15 +85,16 @@ namespace resp
         for(auto& synapse: incoming_connection.synapses)
           synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
 
-    for(auto& incoming_connection: output_layer.front().incoming_connections)
-    {
-      if(incoming_connection.neuron->key == "hidden 5")
-        for(auto& synapse: incoming_connection.synapses)
-          synapse.weight = std::uniform_real_distribution<>(-.5, 0.)(random_gen);
-      else
-        for(auto& synapse: incoming_connection.synapses)
-          synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
-    }
+    for(auto& n: output_layer)
+      for(auto& incoming_connection: n.incoming_connections)
+      {
+        if(incoming_connection.neuron->key == "hidden 5")
+          for(auto& synapse: incoming_connection.synapses)
+            synapse.weight = std::uniform_real_distribution<>(-.5, 0.)(random_gen);
+        else
+          for(auto& synapse: incoming_connection.synapses)
+            synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
+      }
   }
 
 }
