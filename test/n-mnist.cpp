@@ -134,7 +134,7 @@ int main()
       }
     }
     // report epoch logs
-    std::cout << "train loss after epoch  "<< epoch  << " " << loss_epoch / spike_patterns_train.size() << std::endl;
+    std::cout << "train loss  after epoch "<< epoch  << " " << loss_epoch / spike_patterns_train.size() << std::endl;
     std::cout << "train error after epoch "<< epoch  << " " << 100 * double(error_epoch) / spike_patterns_train.size() << " %" << std::endl;
     {
       double loss_validation = 0;

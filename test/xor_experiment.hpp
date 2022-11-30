@@ -1,6 +1,8 @@
 #pragma once
 #include<array>
 #include<random>
+#include<ranges>
+#include<algorithm>
 #include<vector>
 
 namespace resp
@@ -30,8 +32,8 @@ namespace resp
 
   void propagate(auto& network, const double maxtime, const double timestep)
   {
-    //for(double time = 0.; time < maxtime && network.back().at(0).spikes.empty(); time += timestep)
-    for(double time = 0.; time < maxtime; time += timestep)
+    bool not_all_outputs_spiked = std::ranges::any_of(network.back(), [](auto& n){ return n.spikes.empty();});
+    for(double time = 0.; time < maxtime && not_all_outputs_spiked; time += timestep)
       for(auto& layer: network)
         for(auto& n: layer)
           n.forward_propagate(time, timestep);
