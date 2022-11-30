@@ -67,12 +67,21 @@ int main()
   std::cout << "Loading spike patterns..." << std::endl;
   std::vector<Pattern> spike_patterns = load_n_mnist_training(.01, random_gen, std::array{0, 1});
   std::cout << "Loaded " << spike_patterns.size() << " patterns" << std::endl;
-  std::shuffle(spike_patterns.begin(), spike_patterns.end(), random_gen);
+  std::ranges::shuffle(spike_patterns, random_gen);
+  // decimate events:
+  for(auto& pattern: spike_patterns)
+  {
+    std::vector<Event> subset;
+    std::ranges::sample(pattern.events, std::back_inserter(subset), 200, random_gen);
+    pattern.events = subset;
+  }
 
   // create training scheme
   for(int epoch = 0; epoch < 10; ++epoch)
   {
     //double sum_squared_error_epoch = 0;
+    int batch_size = 0;
+    double sum_squared_error_batch = 0;
     for(auto pattern: spike_patterns)
     {
       double sum_squared_error_pattern = 0;
@@ -88,13 +97,13 @@ int main()
       //  sum_squared_error = epoch = 1e9; break;
       //}
 
-      {
-        int nr_of_spikes = 0;
-        for(auto& layer: network)
-          for(auto& n: layer)
-            nr_of_spikes += n.spikes.size();
-        std::cout << nr_of_spikes << std::endl;
-      }
+      //{
+      //  int nr_of_spikes = 0;
+      //  for(auto& layer: network)
+      //    for(auto& n: layer)
+      //      nr_of_spikes += n.spikes.size();
+      //  std::cout << nr_of_spikes << std::endl;
+      //}
 
       //// punish for not spiking
       //// does not work...
@@ -110,22 +119,31 @@ int main()
         if(! neuron.spikes.empty())
         {
           sum_squared_error_pattern += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
-          std::cout << neuron.key << " " << neuron.clamped << " " << neuron.spikes.front() << std::endl;
+          //std::cout << neuron.key << " " << neuron.clamped << " " << neuron.spikes.front() << std::endl;
         }
-      std::cout << sum_squared_error_pattern << std::endl;
+      //std::cout << sum_squared_error_pattern << std::endl;
+      sum_squared_error_batch += sum_squared_error_pattern;
 
       // Backward propagation and changing weights (no batch-mode)
       for(auto& neuron: network.back())
         neuron.compute_delta_weights(learning_rate);
-      // perhaps do the following in batch mode:
-      for(auto& layer: network)
-        for(auto& n: layer)
-          for(auto& incoming_connection: n.incoming_connections)
-            for(auto& synapse: incoming_connection.synapses)
-            {
-              synapse.weight += synapse.delta_weight;
-              synapse.delta_weight = 0.;
-            }
+      if(batch_size < 10)
+        ++batch_size;
+      else
+      {
+        // perhaps do the following in batch mode:
+        for(auto& layer: network)
+          for(auto& n: layer)
+            for(auto& incoming_connection: n.incoming_connections)
+              for(auto& synapse: incoming_connection.synapses)
+              {
+                synapse.weight += synapse.delta_weight;
+                synapse.delta_weight = 0.;
+              }
+        std::cout << "batch error " << sum_squared_error_batch << std::endl;
+        batch_size = 0;
+        sum_squared_error_batch = 0;
+      }
     }
     //std::cout << " " << epoch << " " << sum_squared_error << std::endl;
     // Stopping criterion
