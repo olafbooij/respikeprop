@@ -24,5 +24,9 @@ show that the following network can also be trained to learn the XOR example.
 
 <img src="./doc/xor_example_recurrent.svg">
 
-
 Hence the rebranding of the algorithm as *Re*SpikeProp.
+
+
+A more serious feed-forward example is given in
+[./test/n-mnist.cpp](./test/n-mnist.cpp), which uses the N-MNIST dataset (see
+https://www.garrickorchard.com/datasets/n-mnist).
