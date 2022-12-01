@@ -4,10 +4,10 @@
 #include<respikeprop/respikeprop_store_gradients.hpp>
 #include<test/xor_experiment.hpp>
 
-// A script that applies the respikeprop to the N-MNIST dataset. Here we only
-// learn 0's and 1's. The spiketrains per sample are decimated to 200 events
-// (of the usual 3000~6000). Output uses time-to-first-spike. Polarity of
-// events is not used. Training time is approx 3 minutes (on a simple laptop).
+// A script that applies the respikeprop to the Neuromorphic-MNIST dataset
+// (N-MNIST). The spiketrains per sample are decimated to 200 events (of the
+// usual 3000~6000). Output uses time-to-first-spike. Polarity of events is not
+// used.
 //
 // The dataset should be downloaded from
 // https://www.garrickorchard.com/datasets/n-mnist
@@ -73,8 +73,7 @@ int main()
   // create network
   std::array network{std::vector<Neuron>(28*28),
                      std::vector<Neuron>(10),
-                     create_layer({"O0", "O1"})};
-                     //create_layer({"O0", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9"})};
+                     std::vector<Neuron>(10)};
   init_network_n_mnist(network, random_gen);
   for(auto& layer: network)
     for(auto& n: layer)
@@ -87,7 +86,7 @@ int main()
 
   // creating train and validation set
   std::cout << "Loading spike patterns..." << std::endl;
-  std::vector<Pattern> spike_patterns = load_n_mnist_training(.012, random_gen, std::array{0, 1});
+  std::vector<Pattern> spike_patterns = load_n_mnist_training(.012, random_gen);
   std::ranges::shuffle(spike_patterns, random_gen);
   const size_t validation_size = spike_patterns.size() / 5;
   std::vector<Pattern> spike_patterns_train(spike_patterns.begin(), spike_patterns.end() - validation_size);
@@ -96,7 +95,7 @@ int main()
   std::cout << "Loaded " << spike_patterns_train.size() << " training patterns" << std::endl;
   std::cout << "and    " << spike_patterns_validation_decimated.size() << " validation patterns" << std::endl;
 
-  for(int epoch = 0; epoch < 10; ++epoch)
+  for(int epoch = 0; epoch < 100; ++epoch)
   {
     auto spike_patterns_decimated = decimate_events(spike_patterns_train, 200, random_gen);
     double loss_batch = 0;
