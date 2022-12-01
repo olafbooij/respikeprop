@@ -46,7 +46,7 @@ int main()
         sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
 
         // Backward propagation and changing weights (no batch-mode)
-        network.back().at(0).compute_delta_weights(learning_rate);
+        output_neuron.compute_delta_weights(learning_rate);
         for(auto& layer: network)
           for(auto& n: layer)
             for(auto& incoming_connection: n.incoming_connections)
