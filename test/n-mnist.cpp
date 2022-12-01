@@ -128,7 +128,7 @@ int main()
                 synapse.weight += synapse.delta_weight;
                 synapse.delta_weight = 0.;
               }
-        std::cout << "batch loss after pattern " << pattern_i + 1 << " " << loss_batch / batch_size << std::endl;
+        std::cout << "batch loss after pattern " << pattern_i + 1 << " " << loss_batch / (pattern_i % batch_size + 1) << std::endl;
         loss_epoch += loss_batch;
         loss_batch = 0;
       }
