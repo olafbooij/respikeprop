@@ -112,7 +112,11 @@ int main()
       clear(network);
       Events events;
       load_n_mnist_sample(network, events, pattern);
-      while(network.back().at(0).spikes.empty() && events.active()) // does not work with recurency, then should check on time
+      auto not_all_outputs_spiked = [&network]()
+      {
+        return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+      };
+      while(not_all_outputs_spiked() && events.active()) // does not work with recurency, then should check on time
         events.process_event();
 
       // update logs
@@ -150,7 +154,11 @@ int main()
         clear(network);
         Events events;
         load_n_mnist_sample(network, events, pattern);
-        while(network.back().at(0).spikes.empty() && events.active()) // does not work with recurency, then should check on time
+        auto not_all_outputs_spiked = [&network]()
+        {
+          return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+        };
+        while(not_all_outputs_spiked() && events.active()) // does not work with recurency, then should check on time
           events.process_event();
         loss_validation += compute_loss(network);
         if(first_spike_result(network) != pattern.label) ++error_validation;
