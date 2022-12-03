@@ -61,7 +61,7 @@ namespace resp
 
 int main()
 {
-  auto seed = time(0);
+  auto seed = 1670094866; //time(0);
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;
@@ -96,7 +96,7 @@ int main()
   std::cout << "Loaded " << spike_patterns_train.size() << " training patterns" << std::endl;
   std::cout << "and    " << spike_patterns_validation_decimated.size() << " validation patterns" << std::endl;
 
-  for(int epoch = 0; epoch < 10; ++epoch)
+  for(int epoch = 0; epoch < 4; ++epoch)
   {
     auto spike_patterns_decimated = decimate_events(spike_patterns_train, 200, random_gen);
     double loss_batch = 0;
