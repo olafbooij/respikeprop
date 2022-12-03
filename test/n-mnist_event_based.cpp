@@ -16,7 +16,7 @@
 
 namespace resp
 {
-  void load_n_mnist_sample(/* TODO const*/ auto& network, auto& events, const auto& pattern)
+  void load_n_mnist_sample(auto& network, auto& events, const auto& pattern)
   {
     auto& [input_layer, _, output_layer] = network;
     for(auto& event: pattern.events)
@@ -61,7 +61,7 @@ namespace resp
 
 int main()
 {
-  auto seed = 1670094866; //time(0);
+  auto seed = time(0);
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;
@@ -100,6 +100,19 @@ int main()
   std::cout << "Loaded " << spike_patterns_train.size() << " training patterns" << std::endl;
   std::cout << "and    " << spike_patterns_validation_decimated.size() << " validation patterns" << std::endl;
 
+  auto forward_propagate = [&network](auto& pattern)
+  {
+    clear(network);
+    Events events;
+    load_n_mnist_sample(network, events, pattern);
+    auto not_all_outputs_spiked = [&network]()
+    {
+      return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+    };
+    while(not_all_outputs_spiked() && events.active()) // does not work with recurency, then should check on time
+      events.process_event();
+  };
+
   for(int epoch = 0; epoch < 4; ++epoch)
   {
     auto spike_patterns_decimated = decimate_events(spike_patterns_train, 200, random_gen);
@@ -109,15 +122,7 @@ int main()
     for(const auto& [pattern_i, pattern]: ranges::views::enumerate(spike_patterns_decimated))
     {
       // forward
-      clear(network);
-      Events events;
-      load_n_mnist_sample(network, events, pattern);
-      auto not_all_outputs_spiked = [&network]()
-      {
-        return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
-      };
-      while(not_all_outputs_spiked() && events.active()) // does not work with recurency, then should check on time
-        events.process_event();
+      forward_propagate(pattern);
 
       // update logs
       loss_batch += compute_loss(network);
@@ -151,15 +156,7 @@ int main()
       int error_validation = 0;
       for(const auto& pattern: spike_patterns_validation_decimated)
       {
-        clear(network);
-        Events events;
-        load_n_mnist_sample(network, events, pattern);
-        auto not_all_outputs_spiked = [&network]()
-        {
-          return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
-        };
-        while(not_all_outputs_spiked() && events.active()) // does not work with recurency, then should check on time
-          events.process_event();
+        forward_propagate(pattern);
         loss_validation += compute_loss(network);
         if(first_spike_result(network) != pattern.label) ++error_validation;
       }
