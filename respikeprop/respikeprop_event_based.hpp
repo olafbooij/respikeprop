@@ -8,8 +8,6 @@
 
 namespace resp {
 
-  // Straightforward implementation of Spikeprop with multiple spikes per
-  // neuron, with links to equations from the paper:
   // An implementation of "A gradient descent rule for spiking neurons emitting
   // multiple spikes", Olaf Booij, Hieu tat Nguyen, Information Processing
   // Letters, Volume 95, Issue 6, 30 September 2005, Pages 552-558.
@@ -206,7 +204,7 @@ namespace resp {
       Neuron* neuron;
       double time;
     };
-    std::vector<NeuronSpike> neuron_spikes;  // also have to replace spikes, so priority_queue not an option. A bidirectional map might be faster.
+    std::vector<NeuronSpike> neuron_spikes;  // priority_queue not an option here, because have to replace spikes. A bidirectional map might be faster.
     bool active()
     {
       return ! (neuron_spikes.empty() && synapse_spikes.empty());
@@ -228,7 +226,7 @@ namespace resp {
         auto& synapse_spike = synapse_spikes.top();
         updated_neuron = synapse_spike.neuron;
         // find neuron's existing fire-time
-        neuron_spike = std::ranges::find_if(neuron_spikes, [updated_neuron](const auto& n){return updated_neuron == n.neuron;});  // should use different container
+        neuron_spike = std::ranges::find_if(neuron_spikes, [updated_neuron](const auto& n){return updated_neuron == n.neuron;});
         // update neuron
         updated_neuron->incoming_spike(synapse_spike.time, synapse_spike.weight);
         synapse_spikes.pop();
