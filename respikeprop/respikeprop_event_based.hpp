@@ -3,6 +3,7 @@
 #include<vector>
 #include<queue>
 #include<cmath>
+#include<algorithm>
 #include<range/v3/view/zip.hpp>
 #include<range/v3/view/enumerate.hpp>
 
@@ -189,6 +190,11 @@ namespace resp {
 
   // The following class keeps track of all the event and handles the forward
   // propagation.
+  struct NeuronSpike
+  {
+    Neuron* neuron;
+    double time;
+  };
   struct Events
   {
     struct SynapseSpike
@@ -199,11 +205,6 @@ namespace resp {
       friend bool operator<(auto a, auto b){return a.time > b.time;};  // earliest on top
     };
     std::priority_queue<SynapseSpike> synapse_spikes;  // newest on top, order is stable
-    struct NeuronSpike
-    {
-      Neuron* neuron;
-      double time;
-    };
     std::vector<NeuronSpike> neuron_spikes;  // priority_queue not an option here, because have to replace spikes. A bidirectional map might be faster.
     bool active()
     {
