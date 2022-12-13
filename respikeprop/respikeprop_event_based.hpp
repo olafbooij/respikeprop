@@ -13,9 +13,9 @@ namespace resp {
   // multiple spikes", Olaf Booij, Hieu tat Nguyen, Information Processing
   // Letters, Volume 95, Issue 6, 30 September 2005, Pages 552-558.
   //
-  // Forward propagation is event-based and computation time, except for the
-  // gradient storing and backprop. Spike times are exact (no quantification
-  // errors due to time-steps).
+  // Forward propagation is event-based, which means compution is efficient
+  // (close to the order of spikes) and spike times are exact, i.e. no
+  // quantification errors due to time-steps.
   // Backpropagation in this implementation is implemented quite efficiently,
   // keeping gradients in the forward pass.
   // Network connectivity is implemented using raw-pointers, leaving

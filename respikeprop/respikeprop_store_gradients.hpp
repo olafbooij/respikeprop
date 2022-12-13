@@ -14,7 +14,8 @@ namespace resp {
   // Letters, Volume 95, Issue 6, 30 September 2005, Pages 552-558.
   //
   // Forward propagation is not event-based and thus compute time in the order
-  // of time-steps.
+  // of time-steps. Effort is taken to compute exact time steps, however only
+  // within the timestep.
   // Backpropagation in this implementation is implemented quite efficiently,
   // keeping gradients in the forward pass.
   // Network connectivity is implemented using raw-pointers, leaving
