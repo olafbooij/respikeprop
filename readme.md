@@ -2,14 +2,25 @@
 
 An implementation of "A gradient descent rule for spiking neurons emitting multiple spikes", Olaf Booij, Hieu tat Nguyen, Information Processing Letters, Volume 95, Issue 6, 30 September 2005, Pages 552-558.
 
-The implementation stores gradients in the forward pass to allow for efficient
-backpropagation. Several efficiency improvements still need to be implemented though.
+Actually, there's multiple implementations:
 
-The repo also includes a straightforward (non-optimized) implementation which is
+A straightforward (non-optimized) implementation which is
 easy to match with the formulas in the paper and therefore has some educational
 value / serves as a good reference. See
 [./respikeprop/respikeprop_reference_impl.hpp](./respikeprop/respikeprop_reference_impl.hpp).
 
+An efficient implementation which stores gradients in the forward pass to allow
+for efficient backpropagation. See
+[./respikeprop/respikeprop_store_gradients.hpp](./respikeprop/respikeprop_store_gradients.hpp).
+
+In addition there's an event-based implementation that does not use discrete
+time-steps, but computes exact spike-time. See
+[./respikeprop/respikeprop_event_based.hpp](./respikeprop/respikeprop_event_based.hpp).
+
+
+# Benchmarks
+
+## XOR
 The same network as used in the paper for the experiments is implemented, which
 uses only feedforward connections.
 
@@ -24,9 +35,10 @@ show that the following network can also be trained to learn the XOR example.
 
 <img src="./doc/xor_example_recurrent.svg">
 
-Hence the rebranding of the algorithm as *Re*SpikeProp.
+Hence the re-branding of the algorithm as *Re*SpikeProp.
 
+## N-MNIST
 
 A more serious feed-forward example is given in
-[./test/n-mnist.cpp](./test/n-mnist.cpp), which uses the N-MNIST dataset (see
+[./test/n-mnist.cpp](./test/n-mnist.cpp), which uses the Neuromorphic MNIST (N-MNIST) dataset (see
 https://www.garrickorchard.com/datasets/n-mnist).
