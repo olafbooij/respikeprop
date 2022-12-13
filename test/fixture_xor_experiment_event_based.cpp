@@ -6,7 +6,7 @@
 #include<respikeprop/respikeprop_event_based.hpp>
 #include<test/xor_experiment.hpp>
 
-// Fixture. Delta weights were taken from run of reference implementation.
+// Fixture. Delta weights were taken from run at commit 14b78563a3fa
 
 int main()
 {
@@ -43,11 +43,11 @@ int main()
   network.back().at(0).compute_delta_weights(learning_rate);
 
   auto& [_, hidden_layer, output_layer] = network;
-  std::cout << fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight)   << std::endl;
-  std::cout << fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight)   << std::endl;
-  std::cout << fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight)   << std::endl;
-  std::cout << fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight)   << std::endl;
-  std::cout << fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight) << std::endl;
+  //std::cout << fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight)   << std::endl;
+  //std::cout << fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight)   << std::endl;
+  //std::cout << fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight)   << std::endl;
+  //std::cout << fabs(hidden_layer.at(0).incoming_connections.at(0).synapses.at(15).delta_weight)   << std::endl;
+  //std::cout << fabs(hidden_layer.at(2).incoming_connections.at(1).synapses.at(10).delta_weight) << std::endl;
   assert(fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight - -0.0449549  ) < 1e-7); // output hidden 3 2
   assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(15).delta_weight - -0.0989137  ) < 1e-7); // output hidden 2 1
   assert(fabs(output_layer.at(0).incoming_connections.at(1).synapses.at(11).delta_weight -  0          ) < 1e-7); // output hidden 2 5
