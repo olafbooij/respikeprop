@@ -4,7 +4,7 @@
 #include<random>
 #include<ctime>
 #include<respikeprop/respikeprop_reference_impl.hpp>
-#include<test/xor_experiment.hpp>
+#include<respikeprop/xor_experiment.hpp>
 
 // Training a network to learn XOR as described in Section 4.1.
 

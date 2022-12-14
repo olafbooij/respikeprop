@@ -4,7 +4,7 @@
 #include<ctime>
 #include<range/v3/view/zip.hpp>
 #include<respikeprop/respikeprop_event_based.hpp>
-#include<test/xor_experiment.hpp>
+#include<respikeprop/xor_experiment.hpp>
 
 // Training a network to learn XOR as described in Section 4.1.
 

@@ -3,7 +3,7 @@
 #include<random>
 #include<ctime>
 #include<respikeprop/respikeprop_event_based.hpp>
-#include<test/xor_experiment.hpp>
+#include<respikeprop/xor_experiment.hpp>
 
 // Training a recurrent network to learn XOR.
 // Consisting of 8 neurons all connected with each other. Three are apointed as
