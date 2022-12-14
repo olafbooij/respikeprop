@@ -3,6 +3,7 @@
 #include<random>
 #include<ctime>
 #include<respikeprop/respikeprop_event_based.hpp>
+#include<respikeprop/create_network.hpp>
 #include<respikeprop/xor_experiment.hpp>
 
 // Training a recurrent network to learn XOR.

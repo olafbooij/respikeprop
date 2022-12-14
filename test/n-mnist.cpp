@@ -3,7 +3,7 @@
 #include<respikeprop/load_n_mnist.hpp>
 #include<range/v3/view/zip.hpp>
 #include<respikeprop/respikeprop_event_based.hpp>
-#include<respikeprop/xor_experiment.hpp>
+#include<respikeprop/create_network.hpp>
 
 // A script that applies the respikeprop to the Neuromorphic-MNIST dataset
 // (N-MNIST). The spiketrains per sample are decimated to 200 events (of the

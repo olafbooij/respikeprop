@@ -4,6 +4,7 @@
 #include<random>
 #include<ctime>
 #include<respikeprop/respikeprop_reference_impl.hpp>
+#include<respikeprop/create_network.hpp>
 #include<respikeprop/xor_experiment.hpp>
 
 // Training a network to learn XOR as described in Section 4.1.
@@ -51,6 +52,25 @@ namespace ref
         synapse.weight = std::uniform_real_distribution<>(0., 1.)(random_gen);
   }
 
+  void propagate(auto& network, const double maxtime, const double timestep)
+  {
+    auto not_all_outputs_spiked = [&network]()
+    {
+      return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+    };
+    for(double time = 0.; time < maxtime && not_all_outputs_spiked(); time += timestep)
+      for(auto& layer: network)
+        for(auto& n: layer)
+          n.forward_propagate(time, timestep);
+  }
+
+  void load_sample(auto& network, const auto& sample)
+  {
+    auto& [input_layer, _, output_layer] = network;
+    for(int input_i = 0; input_i < input_layer.size(); ++input_i)
+      input_layer.at(input_i).fire(sample.input.at(input_i));
+    output_layer.at(0).clamped = sample.output;
+  }
 }
 }
 
@@ -81,8 +101,8 @@ int main()
       for(auto sample: get_xor_dataset())
       {
         ref::clear(network);
-        load_sample(network, sample);
-        propagate(network, 40., timestep);
+        ref::load_sample(network, sample);
+        ref::propagate(network, 40., timestep);
         if(output_neuron.spikes.empty())
         {
           std::cout << "No output spikes! Replacing with different trial. " << std::endl;

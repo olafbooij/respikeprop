@@ -4,6 +4,7 @@
 #include<random>
 #include<ctime>
 #include<respikeprop/respikeprop_event_based.hpp>
+#include<respikeprop/create_network.hpp>
 #include<respikeprop/xor_experiment.hpp>
 
 // Fixture. Delta weights were taken from run at commit 14b78563a3fa
