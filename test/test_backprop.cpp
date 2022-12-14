@@ -2,6 +2,7 @@
 #include<vector>
 #include<cassert>
 #include<respikeprop/respikeprop_event_based.hpp>
+#include<respikeprop/create_network.hpp>
 
 // These tests check the gradient (d Error / d weight) used for gradient
 // descent by comparing it against a numerically computed gradient.
@@ -73,22 +74,12 @@ void add_synapse(auto& pre, auto& post, double weight, double delay)
   incoming_connection.synapses.emplace_back(weight, delay);
 }
 
-void connect_outgoing(auto& network)
-{
-  for(auto& neuron: network)
-    for(auto& incoming_connection: neuron.incoming_connections)
-    {
-      incoming_connection.post_neuron = &neuron;
-      incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
-    }
-}
-
 void check_one_input_one_output()
 {
   std::array<Neuron, 2> network{{{"input"}, {"output"}}};
   auto& [input, output] = network;
   add_synapse(input, output, 7., 1.);
-  connect_outgoing(network);
+  connect_outgoing_layer(network);
 
   Events events;
   events.neuron_spikes.emplace_back(&input, 0.);
@@ -102,7 +93,7 @@ void check_two_inputs_one_output()
   auto& [input_0, input_1, output] = network;
   add_synapse(input_0, output, 3., 1.);
   add_synapse(input_1, output, 3., 1.);
-  connect_outgoing(network);
+  connect_outgoing_layer(network);
 
   Events events;
   events.neuron_spikes.emplace_back(&input_0, 0.);
@@ -118,7 +109,7 @@ void check_one_input_one_hidden_one_output()
   auto& [input, hidden, output] = network;
   add_synapse(input , hidden, 7., 1.);
   add_synapse(hidden, output, 7., 1.);
-  connect_outgoing(network);
+  connect_outgoing_layer(network);
 
   Events events;
   events.neuron_spikes.emplace_back(&input, 0.);
@@ -142,7 +133,7 @@ void check_two_inputs_two_hiddens_one_output()
   output.incoming_connections.reserve(2);
   add_synapse(hidden_0, output, 3., 1.2);
   add_synapse(hidden_1, output, 3.2, 1.1);
-  connect_outgoing(network);
+  connect_outgoing_layer(network);
 
   output.clamped = 3.;
 
@@ -188,7 +179,7 @@ void check_two_inputs_two_hiddens_one_output_multi_synapses()
     Connection::Synapse(-1.2, 1.12),
     Connection::Synapse(-0.2, 1.3 )
   });
-  connect_outgoing(network);
+  connect_outgoing_layer(network);
 
   output.clamped = 3.;
 

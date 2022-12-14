@@ -30,5 +30,20 @@ namespace resp
       for(auto& n: layer)
         n.clear();
   }
+  void connect_outgoing(auto& network)
+  {
+    for(auto& layer: network)
+      connect_outgoing_layer(layer);
+  }
+  void connect_outgoing_layer(auto& layer)
+  {
+    for(auto& neuron: layer)
+      for(auto& incoming_connection: neuron.incoming_connections)
+      {
+        incoming_connection.post_neuron = &neuron;
+        incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
+      }
+  }
+
 }
 
