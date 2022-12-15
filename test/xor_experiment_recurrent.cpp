@@ -16,16 +16,6 @@ namespace resp
 {
 namespace rec
 {
-  void connect_outgoing(auto& network)
-  {
-    for(auto& layer: network)
-      for(auto& neuron: layer)
-        for(auto& incoming_connection: neuron.incoming_connections)
-        {
-          incoming_connection.post_neuron = &neuron;
-          incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
-        }
-  }
   void init_xor_network(auto& network, auto& random_gen)
   {
     // using layers, so to easily reuse xor_experiment script.

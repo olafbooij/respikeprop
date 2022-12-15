@@ -76,18 +76,15 @@ int main()
                      //create_layer({"O0", "O1"})};
                      create_layer({"O0", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9"})};
   init_network_n_mnist(network, random_gen);
+  connect_outgoing(network);
   for(auto& layer: network)
     for(auto& n: layer)
       for(auto& incoming_connection: n.incoming_connections)
-      {
-        incoming_connection.post_neuron = &n;
-        incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
         for(auto& synapse: incoming_connection.synapses)
         {
           synapse.delay *= 2;     // time delays a bit bigger {2, 4, 6, ..., 32}
           synapse.weight *= .05;  // weights smaller
         }
-      }
 
   // creating train and validation set
   std::cout << "Loading spike patterns..." << std::endl;

@@ -19,13 +19,7 @@ int main()
                      create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}),
                      create_layer({"output"})};
   init_xor_network(network, random_gen);
-  for(auto& layer: network)
-    for(auto& n: layer)
-      for(auto& incoming_connection: n.incoming_connections)
-      {
-        incoming_connection.post_neuron = &n;
-        incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
-      }
+  connect_outgoing(network);
 
   auto sample = get_xor_dataset().at(0);
   Events events;
