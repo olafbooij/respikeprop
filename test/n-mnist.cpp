@@ -56,7 +56,6 @@ namespace resp
         loss_pattern += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
     return loss_pattern;
   }
-
 }
 
 int main()
@@ -73,15 +72,15 @@ int main()
   // create network
   std::array network{std::vector<Neuron>(28*28),
                      std::vector<Neuron>(10),
-                     //create_layer({"O0", "O1"})};
-                     create_layer({"O0", "O1", "O2", "O3", "O4", "O5", "O6", "O7", "O8", "O9"})};
+                     std::vector<Neuron>(10)};
   init_network_n_mnist(network, random_gen);
   connect_outgoing(network);
+  // time delays a bit bigger {2, 4, 6, ..., 32}
   for(auto& layer: network)
     for(auto& n: layer)
       for(auto& incoming_connection: n.incoming_connections)
         for(auto& synapse: incoming_connection.synapses)
-          synapse.delay *= 2;     // time delays a bit bigger {2, 4, 6, ..., 32}
+          synapse.delay *= 2;
 
   // creating train and validation set
   std::cout << "Loading spike patterns..." << std::endl;
