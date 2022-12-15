@@ -18,7 +18,7 @@ int main()
   std::array network{create_layer({"input 1", "input 2", "bias"}),
                      create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}),
                      create_layer({"output"})};
-  init_network(network, random_gen);
+  init_xor_network(network, random_gen);
   for(auto& layer: network)
     for(auto& n: layer)
       for(auto& incoming_connection: n.incoming_connections)

@@ -26,7 +26,7 @@ namespace rec
           incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
         }
   }
-  void init_network(auto& network, auto& random_gen)
+  void init_xor_network(auto& network, auto& random_gen)
   {
     // using layers, so to easily reuse xor_experiment script.
     auto& [input_layer, hidden_layer, output_layer] = network;
@@ -71,7 +71,7 @@ int main()
                        create_layer({"hidden 1"}),
                        create_layer({"output"})};
 
-    rec::init_network(network, random_gen);
+    rec::init_xor_network(network, random_gen);
     auto& output_neuron = network.back().at(0);
 
     // Main training loop

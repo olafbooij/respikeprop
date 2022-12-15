@@ -35,7 +35,7 @@ namespace ref
       for(auto& n: layer)
         n.spikes.clear();
   }
-  void init_network(auto& network, auto& random_gen)
+  void init_xor_network(auto& network, auto& random_gen)
   {
     auto& [input_layer, hidden_layer, output_layer] = network;
     ref::connect_layers(input_layer, hidden_layer);
@@ -91,7 +91,7 @@ int main()
     std::array network{create_layer({"input 1", "input 2", "bias"}),
                        create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}),
                        create_layer({"output"})};
-    ref::init_network(network, random_gen);
+    ref::init_xor_network(network, random_gen);
     auto& output_neuron = network.back().at(0);
 
     // Main training loop
