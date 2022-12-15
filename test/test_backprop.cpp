@@ -155,30 +155,18 @@ void check_two_inputs_two_hiddens_one_output_multi_synapses()
 
   std::array<Neuron, 5> network{{{"input_0"}, {"input_1"}, {"hidden_0"}, {"hidden_1"}, {"output"}}};
   auto& [input_0, input_1, hidden_0, hidden_1, output] = network;
-  hidden_0.incoming_connections.emplace_back(&input_0, &hidden_0, std::vector<Connection::Synapse>{
-    Connection::Synapse(1.6, 1.12),
-    Connection::Synapse(1.8, 1.20)
-  });
-  hidden_0.incoming_connections.emplace_back(&input_1, &hidden_0, std::vector<Connection::Synapse>{
-    Connection::Synapse(1.0, 1.19),
-    Connection::Synapse(1.7, 1.29)
-  });
-  hidden_1.incoming_connections.emplace_back(&input_0, &hidden_1, std::vector<Connection::Synapse>{
-    Connection::Synapse(1.0, 1.32),
-    Connection::Synapse(4.0, 1.39)
-  });
-  hidden_1.incoming_connections.emplace_back(&input_1, &hidden_1, std::vector<Connection::Synapse>{
-    Connection::Synapse(-3.7, 0.90),
-    Connection::Synapse( 6.7, 0.98)
-  });
-  output.incoming_connections.emplace_back(&hidden_0, &output, std::vector<Connection::Synapse>{
-    Connection::Synapse( 5., 1.23),
-    Connection::Synapse( 4., 1.20)
-  });
-  output.incoming_connections.emplace_back(&hidden_1, &output, std::vector<Connection::Synapse>{
-    Connection::Synapse(-1.2, 1.12),
-    Connection::Synapse(-0.2, 1.3 )
-  });
+  auto add_two_synapses = [](auto& pre, auto& post, double weight_a, double delay_a, double weight_b, double delay_b)
+  {
+    auto& incoming_connection = post.incoming_connections.emplace_back(&pre);
+    incoming_connection.synapses.emplace_back(weight_a, delay_a);
+    incoming_connection.synapses.emplace_back(weight_b, delay_b);
+  };
+  add_two_synapses(input_0 , hidden_0, 1.6, 1.12, 1.8, 1.20);
+  add_two_synapses(input_1 , hidden_0, 1.0, 1.19, 1.7, 1.29);
+  add_two_synapses(input_0 , hidden_1, 1.0, 1.32, 4.0, 1.39);
+  add_two_synapses(input_1 , hidden_1,-3.7, 0.90, 6.7, 0.98);
+  add_two_synapses(hidden_0, output ,  5.0, 1.23, 4.0, 1.20);
+  add_two_synapses(hidden_1, output , -1.2, 1.12,-0.2, 1.30);
   connect_outgoing_layer(network);
 
   output.clamped = 3.;
