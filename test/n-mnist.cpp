@@ -36,7 +36,7 @@ namespace resp
       for(auto& n: layer)
         for(auto& incoming_connection: n.incoming_connections)
           for(auto& synapse: incoming_connection.synapses)
-            synapse.weight = std::uniform_real_distribution<>(-.5, 1.0)(random_gen);
+            synapse.weight = std::uniform_real_distribution<>(-.025, .05)(random_gen);
   }
   std::size_t first_spike_result(auto& network)
   {
@@ -81,10 +81,7 @@ int main()
     for(auto& n: layer)
       for(auto& incoming_connection: n.incoming_connections)
         for(auto& synapse: incoming_connection.synapses)
-        {
           synapse.delay *= 2;     // time delays a bit bigger {2, 4, 6, ..., 32}
-          synapse.weight *= .05;  // weights smaller
-        }
 
   // creating train and validation set
   std::cout << "Loading spike patterns..." << std::endl;
