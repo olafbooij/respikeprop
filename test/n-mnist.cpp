@@ -86,9 +86,9 @@ int main()
   std::cout << "Loading spike patterns..." << std::endl;
   std::vector<Pattern> spike_patterns = load_n_mnist_training(.012, random_gen); //, std::array{0, 1});
   std::ranges::shuffle(spike_patterns, random_gen);
-  const int validation_size = spike_patterns.size() / 5;
-  std::vector<Pattern> spike_patterns_train(spike_patterns.begin(), spike_patterns.end() - validation_size);
-  std::vector<Pattern> spike_patterns_validation(spike_patterns.end() - validation_size, spike_patterns.end());
+  const auto validation_split = spike_patterns.end() - spike_patterns.size() / 5;
+  auto spike_patterns_train = std::ranges::subrange(spike_patterns.begin(), validation_split);
+  auto spike_patterns_validation = std::ranges::subrange(validation_split, spike_patterns.end());
   auto spike_patterns_validation_decimated = decimate_events(spike_patterns_validation, 200, random_gen);
   std::cout << "Loaded " << spike_patterns_train.size() << " training patterns" << std::endl;
   std::cout << "and    " << spike_patterns_validation_decimated.size() << " validation patterns" << std::endl;
