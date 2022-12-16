@@ -21,7 +21,7 @@ namespace resp
       {{6., 6., 0.}, 16.}
     }};
     return dataset;
-  };
+  }
 
   void init_xor_network(auto& network, auto& random_gen)
   {

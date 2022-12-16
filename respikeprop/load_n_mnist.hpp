@@ -62,7 +62,7 @@ namespace resp
     return load_n_mnist_training(part, random_gen, std::views::iota(0, 10));
   }
 
-  auto decimate_events(const auto& patterns, const std::size_t nr_of_events, auto& random_gen)
+  auto decimate_events(const auto& patterns, const int nr_of_events, auto& random_gen)
   {
     std::vector<Pattern> patterns_decimated;
     for(const auto& pattern: patterns)

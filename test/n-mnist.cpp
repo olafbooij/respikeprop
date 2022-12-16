@@ -24,7 +24,7 @@ namespace resp
     // not doing anything with polarity.... should perhaps have 2 inputs per pixel...
     for(auto& neuron: output_layer)
       neuron.clamped = 40;
-    output_layer.at(pattern.label).clamped = 30;
+    output_layer.at(static_cast<std::size_t>(pattern.label)).clamped = 30;
   }
   void init_network_n_mnist(auto& network, auto& random_gen)
   {
@@ -38,9 +38,9 @@ namespace resp
           for(auto& synapse: incoming_connection.synapses)
             synapse.weight = std::uniform_real_distribution<>(-.025, .05)(random_gen);
   }
-  std::size_t first_spike_result(auto& network)
+  auto first_spike_result(auto& network)
   {
-    auto output = std::ranges::min_element(network.back(), [](auto& a, auto& b){
+    auto output = std::ranges::min_element(network.back(), [](auto& a, auto& b) noexcept {
       if(a.spikes.empty()) return false;
       if(b.spikes.empty()) return true;
       return a.spikes.front() < b.spikes.front();
@@ -60,7 +60,7 @@ namespace resp
 
 int main()
 {
-  auto seed = time(0);
+  auto seed = std::random_device()();
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;
@@ -86,7 +86,7 @@ int main()
   std::cout << "Loading spike patterns..." << std::endl;
   std::vector<Pattern> spike_patterns = load_n_mnist_training(.012, random_gen); //, std::array{0, 1});
   std::ranges::shuffle(spike_patterns, random_gen);
-  const size_t validation_size = spike_patterns.size() / 5;
+  const int validation_size = spike_patterns.size() / 5;
   std::vector<Pattern> spike_patterns_train(spike_patterns.begin(), spike_patterns.end() - validation_size);
   std::vector<Pattern> spike_patterns_validation(spike_patterns.end() - validation_size, spike_patterns.end());
   auto spike_patterns_validation_decimated = decimate_events(spike_patterns_validation, 200, random_gen);
@@ -100,7 +100,7 @@ int main()
     load_n_mnist_sample(network, events, pattern);
     auto not_all_outputs_spiked = [&network]()
     {
-      return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+      return std::ranges::any_of(network.back(), [](const auto& n) noexcept { return n.spikes.empty();});
     };
     while(not_all_outputs_spiked() && events.active()) // does not work with recurency, then should check on time
       events.process_event();

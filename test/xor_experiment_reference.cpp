@@ -2,7 +2,6 @@
 #include<array>
 #include<vector>
 #include<random>
-#include<ctime>
 #include<respikeprop/respikeprop_reference_impl.hpp>
 #include<respikeprop/create_network.hpp>
 #include<respikeprop/xor_experiment.hpp>
@@ -20,14 +19,14 @@ namespace ref
     for(auto delay_i = 16; delay_i--;)
       post.incoming_synapses.emplace_back(pre, .0, delay_i + 1.0);
     pre.post_neuron_ptrs.emplace_back(&post);
-  };
+  }
 
   void connect_layers(auto& pre_layer, auto& post_layer)
   {
     for(auto& pre: pre_layer)
       for(auto& post: post_layer)
         ref::connect_neurons(pre, post);
-  };
+  }
 
   void clear(auto& network)
   {
@@ -56,7 +55,7 @@ namespace ref
   {
     auto not_all_outputs_spiked = [&network]()
     {
-      return std::ranges::any_of(network.back(), [](const auto& n){ return n.spikes.empty();});
+      return std::ranges::any_of(network.back(), [](const auto& n) noexcept { return n.spikes.empty();});
     };
     for(double time = 0.; time < maxtime && not_all_outputs_spiked(); time += timestep)
       for(auto& layer: network)
@@ -67,7 +66,7 @@ namespace ref
   void load_sample(auto& network, const auto& sample)
   {
     auto& [input_layer, _, output_layer] = network;
-    for(int input_i = 0; input_i < input_layer.size(); ++input_i)
+    for(std::size_t input_i = 0; input_i < input_layer.size(); ++input_i)
       input_layer.at(input_i).fire(sample.input.at(input_i));
     output_layer.at(0).clamped = sample.output;
   }
@@ -76,7 +75,7 @@ namespace ref
 
 int main()
 {
-  auto seed = time(0);
+  auto seed = std::random_device()();
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;

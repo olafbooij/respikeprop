@@ -1,7 +1,6 @@
 #include<iostream>
 #include<array>
 #include<random>
-#include<ctime>
 #include<respikeprop/respikeprop_event_based.hpp>
 #include<respikeprop/create_network.hpp>
 #include<respikeprop/xor_experiment.hpp>
@@ -43,7 +42,7 @@ namespace rec
 
 int main()
 {
-  auto seed = time(0);
+  auto seed = std::random_device()();
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;

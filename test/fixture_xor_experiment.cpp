@@ -2,7 +2,6 @@
 #include<array>
 #include<vector>
 #include<random>
-#include<ctime>
 #include<respikeprop/respikeprop_event_based.hpp>
 #include<respikeprop/create_network.hpp>
 #include<respikeprop/xor_experiment.hpp>
