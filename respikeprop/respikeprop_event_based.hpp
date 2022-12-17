@@ -4,6 +4,7 @@
 #include<queue>
 #include<cmath>
 #include<algorithm>
+#include<ranges>
 #include<range/v3/view/zip.hpp>
 #include<range/v3/view/enumerate.hpp>
 
@@ -171,7 +172,7 @@ namespace resp {
         for(auto& synapse: incoming_connection.synapses)
           if(spike_i < synapse.dt_dws.size())
             synapse.delta_weight -= learning_rate * dE_dt * synapse.dt_dws.at(spike_i);
-        for(std::size_t pre_spike_i = 0; pre_spike_i < incoming_connection.neuron->spikes.size(); ++pre_spike_i)
+        for(auto pre_spike_i: std::views::iota(0u, incoming_connection.neuron->spikes.size()))
           if(spikes.at(spike_i) > incoming_connection.neuron->spikes.at(pre_spike_i))
             if(pre_spike_i < incoming_connection.dprets_dpostts.size())
               if(spike_i < incoming_connection.dprets_dpostts.at(pre_spike_i).size())
