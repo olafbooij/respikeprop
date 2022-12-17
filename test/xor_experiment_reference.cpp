@@ -2,6 +2,7 @@
 #include<array>
 #include<vector>
 #include<random>
+#include<range/v3/view/zip.hpp>
 #include<respikeprop/respikeprop_reference_impl.hpp>
 #include<respikeprop/create_network.hpp>
 #include<respikeprop/xor_experiment.hpp>
@@ -66,8 +67,8 @@ namespace ref
   void load_sample(auto& network, const auto& sample)
   {
     auto& [input_layer, _, output_layer] = network;
-    for(std::size_t input_i = 0; input_i < input_layer.size(); ++input_i)
-      input_layer.at(input_i).fire(sample.input.at(input_i));
+    for(const auto& [input_neuron, input_sample]: ranges::views::zip(input_layer, sample.input))
+      input_neuron.fire(input_sample);
     output_layer.at(0).clamped = sample.output;
   }
 }

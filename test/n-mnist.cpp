@@ -102,7 +102,7 @@ int main()
     {
       return std::ranges::any_of(network.back(), [](const auto& n) noexcept { return n.spikes.empty();});
     };
-    while(not_all_outputs_spiked() && events.active()) // does not work with recurency, then should check on time
+    while(not_all_outputs_spiked() && events.active())
       events.process_event();
   };
 

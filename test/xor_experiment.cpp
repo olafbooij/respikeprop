@@ -43,7 +43,7 @@ int main()
             events.neuron_spikes.emplace_back(&input_neuron, input_sample);
           output_layer.at(0).clamped = sample.output;
         }
-        while(network.back().at(0).spikes.empty() && events.active()) // does not work with recurency, then should check on time
+        while(network.back().at(0).spikes.empty() && events.active())
           events.process_event();
         if(output_neuron.spikes.empty())
         {
