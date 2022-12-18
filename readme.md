@@ -14,7 +14,6 @@ but computes exact spike-times, enabled by a smart choice of time-constants.
 Gradients are stored in the forward pass to allow for efficient backpropagation. See
 [./respikeprop/respikeprop_event_based.hpp](./respikeprop/respikeprop_event_based.hpp).
 
-
 # Benchmarks
 
 ## XOR
@@ -39,3 +38,9 @@ Hence the re-branding of the algorithm as *Re*SpikeProp.
 A more serious feed-forward example is given in
 [./test/n-mnist.cpp](./test/n-mnist.cpp), which uses the Neuromorphic MNIST (N-MNIST) dataset (see
 https://www.garrickorchard.com/datasets/n-mnist).
+
+
+# Build
+
+See : [./requirements.md](./requirements.md).
+
