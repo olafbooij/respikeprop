@@ -9,7 +9,6 @@
 
 namespace resp
 {
-
   struct Event
   {
     uint8_t x;
@@ -73,6 +72,5 @@ namespace resp
     }
     return patterns_decimated;
   }
-
 }
 

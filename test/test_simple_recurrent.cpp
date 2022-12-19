@@ -41,7 +41,7 @@ int main()
       events.process_event();
     //std::cout << output.spikes.front() << std::endl;
 
-    output.compute_delta_weights(learning_rate);
+    output.backprop(learning_rate);
 
     auto adjust_weights = [](auto& neuron)
     {

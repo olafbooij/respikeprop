@@ -179,13 +179,12 @@ namespace resp {
                 incoming_connection.neuron->add_dE_dt(pre_spike_i, dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i), learning_rate);
       }
     }
-    void compute_delta_weights(const double learning_rate)  // missnomer, starts backprop
+    void backprop(const double learning_rate)
     {
-      if(clamped > 0)  // to check that this is an output neuron
-        if(! spikes.empty())
-          add_dE_dt(0, spikes.front() - clamped, learning_rate);
+      assert(clamped > 0);  // to check that this is an output neuron
+      if(! spikes.empty())
+        add_dE_dt(0, spikes.front() - clamped, learning_rate);
     }
-    void forward_propagate(double, double) {};  // (not used in this implementation)
   };
 
 

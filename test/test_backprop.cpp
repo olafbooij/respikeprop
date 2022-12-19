@@ -50,7 +50,7 @@ void check_backprop(auto& network, auto& events, auto& synapse)
     for(auto& incoming_connection: neuron.incoming_connections)
       for(auto& in_synapse: incoming_connection.synapses)
         in_synapse.delta_weight = 0.;
-  output.compute_delta_weights(learning_rate);
+  output.backprop(learning_rate);
   synapse.weight -= small;
 
   //std::cout << "difference         " << error_after - error_before << std::endl;

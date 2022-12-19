@@ -43,7 +43,7 @@ int main()
             events.neuron_spikes.emplace_back(&input_neuron, input_sample);
           output_layer.at(0).clamped = sample.output;
         }
-        while(network.back().at(0).spikes.empty() && events.active())
+        while(output_neuron.spikes.empty() && events.active())
           events.process_event();
         if(output_neuron.spikes.empty())
         {
@@ -54,7 +54,7 @@ int main()
         sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
 
         // Backward propagation and changing weights (no batch-mode)
-        network.back().at(0).compute_delta_weights(learning_rate);
+        output_neuron.backprop(learning_rate);
         for(auto& layer: network)
           for(auto& n: layer)
             for(auto& incoming_connection: n.incoming_connections)

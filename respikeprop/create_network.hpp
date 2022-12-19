@@ -1,4 +1,5 @@
 #pragma once
+#include<vector>
 
 namespace resp
 {
@@ -30,6 +31,7 @@ namespace resp
       for(auto& n: layer)
         n.clear();
   }
+
   void connect_outgoing(auto& network)
   {
     for(auto& layer: network)
@@ -44,6 +46,5 @@ namespace resp
         incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
       }
   }
-
 }
 

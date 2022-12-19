@@ -123,7 +123,7 @@ int main()
 
       // backprop
       for(auto& neuron: network.back())
-        neuron.compute_delta_weights(learning_rate);
+        neuron.backprop(learning_rate);
 
       // per batch change weights and report logs
       if((pattern_i + 1) % batch_size == 0 || pattern_i + 1 == spike_patterns_decimated.size())

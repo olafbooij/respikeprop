@@ -19,6 +19,7 @@ int main()
                      create_layer({"output"})};
   init_xor_network(network, random_gen);
   connect_outgoing(network);
+  auto& output_neuron = network.back().at(0);
 
   auto sample = get_xor_dataset().at(0);
   Events events;
@@ -26,15 +27,15 @@ int main()
     auto& [input_layer, _, output_layer] = network;
     for(const auto& [input_neuron, input_sample]: ranges::views::zip(input_layer, sample.input))
       events.neuron_spikes.emplace_back(&input_neuron, input_sample);
-    output_layer.at(0).clamped = sample.output;
+    output_neuron.clamped = sample.output;
   }
 
   const double timestep = .1;
-  while(network.back().at(0).spikes.empty() && events.active()) // does not work with recurency, then should check on time
+  while(output_neuron.spikes.empty() && events.active()) // does not work with recurency, then should check on time
     events.process_event();
 
   const double learning_rate = 1e-2;
-  network.back().at(0).compute_delta_weights(learning_rate);
+  output_neuron.backprop(learning_rate);
 
   auto& [_, hidden_layer, output_layer] = network;
   //std::cout << fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight)   << std::endl;
