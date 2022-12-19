@@ -41,11 +41,7 @@ int main()
         while(output_neuron.spikes.empty() && events.active())
           events.process_event();
         if(output_neuron.spikes.empty())
-        {
-          std::cout << "No output spikes! Replacing with different trial. " << std::endl;
-          trial -= 1;
-          sum_squared_error = epoch = 1e9; break;
-        }
+          output_neuron.spike(100);  // bit of a hack to force backprop
         sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
 
         // Backward propagation and changing weights (no batch-mode)
