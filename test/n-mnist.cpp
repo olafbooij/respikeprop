@@ -65,7 +65,6 @@ int main()
   std::mt19937 random_gen(seed);
   using namespace resp;
 
-  const double timestep = .1;
   const double learning_rate = 1e-4;
   const int batch_size = 10;
 

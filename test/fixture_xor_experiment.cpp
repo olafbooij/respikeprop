@@ -23,14 +23,8 @@ int main()
 
   auto sample = get_xor_dataset().at(0);
   Events events;
-  { //load_sample(network, sample);
-    auto& [input_layer, _, output_layer] = network;
-    for(const auto& [input_neuron, input_sample]: ranges::views::zip(input_layer, sample.input))
-      events.neuron_spikes.emplace_back(&input_neuron, input_sample);
-    output_neuron.clamped = sample.output;
-  }
+  load_sample(network, events, sample);
 
-  const double timestep = .1;
   while(output_neuron.spikes.empty() && events.active()) // does not work with recurency, then should check on time
     events.process_event();
 

@@ -72,12 +72,7 @@ int main()
       {
         clear(network);
         Events events;
-        { //load_sample(network, sample);
-          auto& [input_layer, _, output_layer] = network;
-          for(const auto& [input_neuron, input_sample]: ranges::views::zip(input_layer, sample.input))
-            events.neuron_spikes.emplace_back(&input_neuron, input_sample);
-          output_layer.at(0).clamped = sample.output;
-        }
+        load_sample(network, events, sample);
         while(output_neuron.spikes.empty() && events.active()) // should perhaps also check on time...
           events.process_event();
         if(output_neuron.spikes.empty())
