@@ -64,11 +64,6 @@ namespace resp {
       u_m = u_s = 0;
     }
 
-    void fire(double time)  // only used for input spikes
-    {
-      spikes.emplace_back(time);
-    }
-
     void update_potentials(double time)
     {
       u_m *= exp(- (time - last_update) / tau_m);  // could make this compile time by fixing timestep and tau's
