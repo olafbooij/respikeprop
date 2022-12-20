@@ -162,24 +162,19 @@ namespace resp {
 
     // Compute needed weight changes, and backpropagate to incoming
     // connections.
-    // The implementation results in a bit of double work, because each dE_dt
-    // change is pushed back separately. Could be more efficient if knowing for
-    // each spike if all resulting post-spikes have been back-propagated.
     void backprop_spike(std::size_t spike_i, double learning_rate)
     {
+      auto& spike = spikes.at(spike_i);
       if(clamped > 0 && spike_i == 0)  // output neuron
-        if(! spikes.empty())
-          spikes.front().dE_dt = spikes.front().time - clamped;
+        spike.dE_dt = spike.time - clamped;
       for(auto& incoming_connection: incoming_connections)
       {
         for(auto& synapse: incoming_connection.synapses)
-          if(spike_i < synapse.dt_dws.size())
-            synapse.delta_weight -= learning_rate * spikes.at(spike_i).dE_dt * synapse.dt_dws.at(spike_i);
-        // or perhaps loop over incoming_connection.dprets_dpostts ... TODO
-        for(auto pre_spike_i: std::views::iota(0u, incoming_connection.neuron->spikes.size()))
-          if(pre_spike_i < incoming_connection.dprets_dpostts.size())
-            if(spike_i < incoming_connection.dprets_dpostts.at(pre_spike_i).size())
-              incoming_connection.neuron->spikes.at(pre_spike_i).dE_dt += spikes.at(spike_i).dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i);
+          //if(spike_i < synapse.dt_dws.size())  // TODO check if this is necessary
+            synapse.delta_weight -= learning_rate * spike.dE_dt * synapse.dt_dws.at(spike_i);
+        for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
+          //if(spike_i < dpret_dpostts.size())  // TODO check if this is necessary
+            pre_spike.dE_dt += spike.dE_dt * dpret_dpostts.at(spike_i);
       }
     }
   };
