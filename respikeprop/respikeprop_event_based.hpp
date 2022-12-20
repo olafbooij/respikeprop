@@ -177,10 +177,9 @@ namespace resp {
             synapse.delta_weight -= learning_rate * spikes.at(spike_i).dE_dt * synapse.dt_dws.at(spike_i);
         // or perhaps loop over incoming_connection.dprets_dpostts ... TODO
         for(auto pre_spike_i: std::views::iota(0u, incoming_connection.neuron->spikes.size()))
-          if(spikes.at(spike_i).time > incoming_connection.neuron->spikes.at(pre_spike_i).time)  //TODO disregarding delay, could probably be removed
-            if(pre_spike_i < incoming_connection.dprets_dpostts.size())
-              if(spike_i < incoming_connection.dprets_dpostts.at(pre_spike_i).size())
-                incoming_connection.neuron->spikes.at(pre_spike_i).dE_dt += spikes.at(spike_i).dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i);
+          if(pre_spike_i < incoming_connection.dprets_dpostts.size())
+            if(spike_i < incoming_connection.dprets_dpostts.at(pre_spike_i).size())
+              incoming_connection.neuron->spikes.at(pre_spike_i).dE_dt += spikes.at(spike_i).dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i);
       }
     }
   };
