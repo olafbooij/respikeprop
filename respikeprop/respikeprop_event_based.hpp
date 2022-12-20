@@ -44,6 +44,7 @@ namespace resp {
     std::vector<Connection> incoming_connections;
     std::vector<Connection*> outgoing_connections;  // raw pointers again!
     std::vector<double> spikes;
+    std::vector<double> dE_dt;
     const double tau_m = 4.0;
     const double tau_s = tau_m / 2;
     double u_m;
@@ -160,25 +161,27 @@ namespace resp {
     // The implementation results in a bit of double work, because each dE_dt
     // change is pushed back separately. Could be more efficient if knowing for
     // each spike if all resulting post-spikes have been back-propagated.
-    void add_dE_dt(std::size_t spike_i, double dE_dt, double learning_rate)
+    void backprop_spike(std::size_t spike_i, double learning_rate)
     {
+      // TODO check this->dE_dt size
+      this->dE_dt.resize(spike_i + 1);  // make sure there's an entry for all spikes
+      if(clamped > 0)  // output neuron
+        if(! spikes.empty())
+          this->dE_dt.at(spike_i) = spikes.front() - clamped;
       for(auto& incoming_connection: incoming_connections)
       {
         for(auto& synapse: incoming_connection.synapses)
           if(spike_i < synapse.dt_dws.size())
-            synapse.delta_weight -= learning_rate * dE_dt * synapse.dt_dws.at(spike_i);
+            synapse.delta_weight -= learning_rate * this->dE_dt.at(spike_i) * synapse.dt_dws.at(spike_i);
         for(auto pre_spike_i: std::views::iota(0u, incoming_connection.neuron->spikes.size()))
           if(spikes.at(spike_i) > incoming_connection.neuron->spikes.at(pre_spike_i))
             if(pre_spike_i < incoming_connection.dprets_dpostts.size())
               if(spike_i < incoming_connection.dprets_dpostts.at(pre_spike_i).size())
-                incoming_connection.neuron->add_dE_dt(pre_spike_i, dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i), learning_rate);
+              {
+                incoming_connection.neuron->dE_dt.resize(pre_spike_i + 1);  // make sure there's an entry for all spikes
+                incoming_connection.neuron->dE_dt.at(pre_spike_i) += this->dE_dt.at(spike_i) * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i);
+              }
       }
-    }
-    void backprop(const double learning_rate)
-    {
-      assert(clamped > 0);  // to check that this is an output neuron
-      if(! spikes.empty())
-        add_dE_dt(0, spikes.front() - clamped, learning_rate);
     }
   };
 
@@ -200,10 +203,17 @@ namespace resp {
       friend bool operator<(auto a, auto b){return a.time > b.time;};  // earliest on top
     };
     std::priority_queue<SynapseSpike> synapse_spikes;  // newest on top, order is stable
-    std::vector<NeuronSpike> neuron_spikes;  // priority_queue not an option here, because have to replace spikes. A bidirectional map might be faster.
+    std::vector<NeuronSpike> predicted_spikes;  // priority_queue not an option here, because have to replace spikes. A bidirectional map might be faster.
+    struct SpikeRecord
+    {
+      Neuron* neuron;
+      double time;
+      std::size_t index;
+    };
+    std::vector<SpikeRecord> actual_spikes;  // recorded for backprop
     bool active()
     {
-      return ! (neuron_spikes.empty() && synapse_spikes.empty());
+      return ! (predicted_spikes.empty() && synapse_spikes.empty());
     }
 
     // Process the next event in the queue. This might be either a spike
@@ -214,15 +224,15 @@ namespace resp {
         return;
       // which one first
       // compute_earliest_neuron_spike
-      auto neuron_spike = std::ranges::max_element(neuron_spikes, [](const auto& a, const auto& b) noexcept {return a.time > b.time;});
+      auto neuron_spike = std::ranges::max_element(predicted_spikes, [](const auto& a, const auto& b) noexcept {return a.time > b.time;});
       Neuron* updated_neuron;
       // bit of ugly logic to determine which type of event is first 
-      if(neuron_spikes.empty() || ((! synapse_spikes.empty()) && synapse_spikes.top().time < neuron_spike->time))
+      if(predicted_spikes.empty() || ((! synapse_spikes.empty()) && synapse_spikes.top().time < neuron_spike->time))
       { // process synapse
         auto& synapse_spike = synapse_spikes.top();
         updated_neuron = synapse_spike.neuron;
         // find neuron's existing fire-time
-        neuron_spike = std::ranges::find_if(neuron_spikes, [updated_neuron](const auto& n) noexcept {return updated_neuron == n.neuron;});
+        neuron_spike = std::ranges::find_if(predicted_spikes, [updated_neuron](const auto& n) noexcept {return updated_neuron == n.neuron;});
         // update neuron
         updated_neuron->incoming_spike(synapse_spike.time, synapse_spike.weight);
         synapse_spikes.pop();
@@ -231,6 +241,8 @@ namespace resp {
       { // process neuron
         // update post_synapses
         updated_neuron = neuron_spike->neuron;
+        // record
+        actual_spikes.emplace_back(updated_neuron, neuron_spike->time, updated_neuron->spikes.size());
         for(auto& outgoing_connection: updated_neuron->outgoing_connections)
           for(auto& post_synapse: outgoing_connection->synapses)
             synapse_spikes.emplace(outgoing_connection->post_neuron, post_synapse.weight, neuron_spike->time + post_synapse.delay);
@@ -238,12 +250,17 @@ namespace resp {
         updated_neuron->spike(neuron_spike->time);
       }
       // remove affected neuron's spike
-      if(neuron_spike != neuron_spikes.end())
-        neuron_spikes.erase(neuron_spike);
+      if(neuron_spike != predicted_spikes.end())
+        predicted_spikes.erase(neuron_spike);
       // check for new spike
       auto future_spike = updated_neuron->compute_future_spike(); 
       if(future_spike > 0)
-        neuron_spikes.emplace_back(updated_neuron, future_spike);
+        predicted_spikes.emplace_back(updated_neuron, future_spike);
+    }
+    void backprop(const double learning_rate) const
+    {
+      for(const auto& spike: std::ranges::reverse_view{actual_spikes})
+        spike.neuron->backprop_spike(spike.index, learning_rate);
     }
   };
 

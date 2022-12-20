@@ -50,7 +50,7 @@ namespace resp
   {
     auto& [input_layer, _, output_layer] = network;
     for(const auto& [input_neuron, input_sample]: ranges::views::zip(input_layer, sample.input))
-      events.neuron_spikes.emplace_back(&input_neuron, input_sample);
+      events.predicted_spikes.emplace_back(&input_neuron, input_sample);
     output_layer.at(0).clamped = sample.output;
   }
 
