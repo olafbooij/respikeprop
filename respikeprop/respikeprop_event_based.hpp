@@ -43,8 +43,12 @@ namespace resp {
     Neuron(std::string key_ = "neuron") : key(key_) {}
     std::vector<Connection> incoming_connections;
     std::vector<Connection*> outgoing_connections;  // raw pointers again!
-    std::vector<double> spikes;
-    std::vector<double> dE_dt;
+    struct Spike
+    {
+      double time;
+      double dE_dt;
+    };
+    std::vector<Spike> spikes;
     const double tau_m = 4.0;
     const double tau_s = tau_m / 2;
     double u_m;
@@ -106,7 +110,7 @@ namespace resp {
       update_potentials(time);
 
       store_gradients(time);
-      spikes.emplace_back(time);
+      spikes.emplace_back(time, 0.);
       u_m -= threshold;
     }
 
@@ -127,7 +131,7 @@ namespace resp {
         for(auto& synapse: incoming_connection.synapses)
           for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
           {
-            double s = spike_time - pre_spike - synapse.delay;
+            double s = spike_time - pre_spike.time - synapse.delay;
             if(s >= 0)
             {
               auto u_m1 =   synapse.weight * exp(-s / tau_m);
@@ -139,7 +143,7 @@ namespace resp {
 
         for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
         {
-          double s = spike_time - ref_spike;
+          double s = spike_time - ref_spike.time;
           if(s >= 0)
           {
             double u_r1 = exp(-s / tau_m) / tau_m;
@@ -163,24 +167,20 @@ namespace resp {
     // each spike if all resulting post-spikes have been back-propagated.
     void backprop_spike(std::size_t spike_i, double learning_rate)
     {
-      // TODO check this->dE_dt size
-      this->dE_dt.resize(spike_i + 1);  // make sure there's an entry for all spikes
-      if(clamped > 0)  // output neuron
+      if(clamped > 0 && spike_i == 0)  // output neuron
         if(! spikes.empty())
-          this->dE_dt.at(spike_i) = spikes.front() - clamped;
+          spikes.front().dE_dt = spikes.front().time - clamped;
       for(auto& incoming_connection: incoming_connections)
       {
         for(auto& synapse: incoming_connection.synapses)
           if(spike_i < synapse.dt_dws.size())
-            synapse.delta_weight -= learning_rate * this->dE_dt.at(spike_i) * synapse.dt_dws.at(spike_i);
+            synapse.delta_weight -= learning_rate * spikes.at(spike_i).dE_dt * synapse.dt_dws.at(spike_i);
+        // or perhaps loop over incoming_connection.dprets_dpostts ... TODO
         for(auto pre_spike_i: std::views::iota(0u, incoming_connection.neuron->spikes.size()))
-          if(spikes.at(spike_i) > incoming_connection.neuron->spikes.at(pre_spike_i))
+          if(spikes.at(spike_i).time > incoming_connection.neuron->spikes.at(pre_spike_i).time)  //TODO disregarding delay, could probably be removed
             if(pre_spike_i < incoming_connection.dprets_dpostts.size())
               if(spike_i < incoming_connection.dprets_dpostts.at(pre_spike_i).size())
-              {
-                incoming_connection.neuron->dE_dt.resize(pre_spike_i + 1);  // make sure there's an entry for all spikes
-                incoming_connection.neuron->dE_dt.at(pre_spike_i) += this->dE_dt.at(spike_i) * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i);
-              }
+                incoming_connection.neuron->spikes.at(pre_spike_i).dE_dt += spikes.at(spike_i).dE_dt * incoming_connection.dprets_dpostts.at(pre_spike_i).at(spike_i);
       }
     }
   };
