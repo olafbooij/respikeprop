@@ -170,11 +170,9 @@ namespace resp {
       for(auto& incoming_connection: incoming_connections)
       {
         for(auto& synapse: incoming_connection.synapses)
-          //if(spike_i < synapse.dt_dws.size())  // TODO check if this is necessary
-            synapse.delta_weight -= learning_rate * spike.dE_dt * synapse.dt_dws.at(spike_i);
+          synapse.delta_weight -= learning_rate * spike.dE_dt * synapse.dt_dws.at(spike_i);
         for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
-          //if(spike_i < dpret_dpostts.size())  // TODO check if this is necessary
-            pre_spike.dE_dt += spike.dE_dt * dpret_dpostts.at(spike_i);
+          pre_spike.dE_dt += spike.dE_dt * dpret_dpostts.at(spike_i);
       }
     }
   };
