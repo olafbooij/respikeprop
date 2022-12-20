@@ -8,8 +8,8 @@
 
 // Training a recurrent network to learn XOR.
 // Consisting of 8 neurons all connected with each other. Three are apointed as
-// input and one as output. Training is very unstable and often getting stuck
-// with neurons firing, without an output fire. A clear TODO...
+// input and one as output. Training is still unstable, with commonly no output
+// fire. A clear TODO...
 
 // Some helpfull functions that differ from the ones in xor_experiment.hpp
 namespace resp
@@ -73,7 +73,7 @@ int main()
         clear(network);
         Events events;
         load_sample(network, events, sample);
-        while(output_neuron.spikes.empty() && events.active()) // should perhaps also check on time...
+        while(output_neuron.spikes.empty() && events.active() && (events.synapse_spikes.empty() || events.synapse_spikes.top().time < 20))
           events.process_event();
         if(output_neuron.spikes.empty())
         {
@@ -82,10 +82,10 @@ int main()
           sum_squared_error = epoch = 1e9; break;
         }
 
-        sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
+        sum_squared_error += .5 * pow(output_neuron.spikes.at(0).time - output_neuron.clamped, 2);
 
         // Backward propagation and changing weights (no batch-mode)
-        output_neuron.backprop(learning_rate);
+        backprop(events.actual_spikes, learning_rate);
         for(auto& layer: network)
           for(auto& n: layer)
             for(auto& incoming_connection: n.incoming_connections)
