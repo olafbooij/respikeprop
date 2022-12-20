@@ -19,6 +19,7 @@ void check_backprop(auto& network, auto& events, auto& synapse)
   resp::Events events_before = events;
   for(auto& neuron: network)
     neuron.clear();
+
   while(output.spikes.empty() && events_before.active())
     events_before.process_event();
   //for(auto& neuron: network)
@@ -28,7 +29,7 @@ void check_backprop(auto& network, auto& events, auto& synapse)
   //    std::cout << spike << std::endl;
   //}
 
-  auto error_before = .5 * pow(output.spikes.at(0) - output.clamped, 2);
+  auto error_before = .5 * pow(output.spikes.at(0).time - output.clamped, 2);
 
   const double small = 1e-6;
   synapse.weight += small;
@@ -43,14 +44,14 @@ void check_backprop(auto& network, auto& events, auto& synapse)
   //  for(auto spike: neuron.spikes)
   //    std::cout << spike << std::endl;
   //}
-  auto error_after = .5 * pow(output.spikes.at(0) - output.clamped, 2);
+  auto error_after = .5 * pow(output.spikes.at(0).time - output.clamped, 2);
 
   const double learning_rate = 1.;
   for(auto& neuron: network)
     for(auto& incoming_connection: neuron.incoming_connections)
       for(auto& in_synapse: incoming_connection.synapses)
         in_synapse.delta_weight = 0.;
-  output.backprop(learning_rate);
+  backprop(events_after.actual_spikes, learning_rate);
   synapse.weight -= small;
 
   //std::cout << "difference         " << error_after - error_before << std::endl;
@@ -82,7 +83,7 @@ void check_one_input_one_output()
   connect_outgoing_layer(network);
 
   Events events;
-  events.neuron_spikes.emplace_back(&input, 0.);
+  events.predicted_spikes.emplace_back(&input, 0.);
   output.clamped = 3.;
   check_backprop_all(network, events);
 }
@@ -96,8 +97,8 @@ void check_two_inputs_one_output()
   connect_outgoing_layer(network);
 
   Events events;
-  events.neuron_spikes.emplace_back(&input_0, 0.);
-  events.neuron_spikes.emplace_back(&input_1, 0.);
+  events.predicted_spikes.emplace_back(&input_0, 0.);
+  events.predicted_spikes.emplace_back(&input_1, 0.);
   output.clamped = 3.;
 
   check_backprop_all(network, events);
@@ -112,7 +113,7 @@ void check_one_input_one_hidden_one_output()
   connect_outgoing_layer(network);
 
   Events events;
-  events.neuron_spikes.emplace_back(&input, 0.);
+  events.predicted_spikes.emplace_back(&input, 0.);
   output.clamped = 3.;
 
   check_backprop_all(network, events);
@@ -138,13 +139,13 @@ void check_two_inputs_two_hiddens_one_output()
   output.clamped = 3.;
 
   Events events;
-  events.neuron_spikes.emplace_back(&input_0, .2);
-  events.neuron_spikes.emplace_back(&input_1, .1);
+  events.predicted_spikes.emplace_back(&input_0, .2);
+  events.predicted_spikes.emplace_back(&input_1, .1);
 
   check_backprop_all(network, events);
 
-  events.neuron_spikes.emplace_back(&input_0, .3);
-  events.neuron_spikes.emplace_back(&input_1, .4);
+  events.predicted_spikes.emplace_back(&input_0, .3);
+  events.predicted_spikes.emplace_back(&input_1, .4);
 
   check_backprop_all(network, events);
 }
@@ -172,10 +173,10 @@ void check_two_inputs_two_hiddens_one_output_multi_synapses()
   output.clamped = 3.;
 
   Events events;
-  events.neuron_spikes.emplace_back(&input_0, .2);
-  events.neuron_spikes.emplace_back(&input_1, .1);
-  events.neuron_spikes.emplace_back(&input_0, .3);
-  events.neuron_spikes.emplace_back(&input_1, .4);
+  events.predicted_spikes.emplace_back(&input_0, .2);
+  events.predicted_spikes.emplace_back(&input_1, .1);
+  events.predicted_spikes.emplace_back(&input_0, .3);
+  events.predicted_spikes.emplace_back(&input_1, .4);
 
   check_backprop_all(network, events);
 }

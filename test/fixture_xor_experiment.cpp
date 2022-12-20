@@ -29,7 +29,7 @@ int main()
     events.process_event();
 
   const double learning_rate = 1e-2;
-  events.backprop(learning_rate);
+  backprop(events.actual_spikes, learning_rate);
 
   auto& [_, hidden_layer, output_layer] = network;
   //std::cout << fabs(output_layer.at(0).incoming_connections.at(2).synapses.at(14).delta_weight)   << std::endl;
