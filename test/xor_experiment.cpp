@@ -1,20 +1,20 @@
 #include<iostream>
 #include<array>
 #include<random>
-#include<ctime>
-#include<respikeprop/respikeprop_store_gradients.hpp>
-#include<test/xor_experiment.hpp>
+#include<range/v3/view/zip.hpp>
+#include<respikeprop/respikeprop_event_based.hpp>
+#include<respikeprop/create_network.hpp>
+#include<respikeprop/xor_experiment.hpp>
 
 // Training a network to learn XOR as described in Section 4.1.
 
 int main()
 {
-  auto seed = time(0);
+  auto seed = std::random_device()();
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;
 
-  const double timestep = .1;
   const double learning_rate = 1e-2;
 
   double avg_nr_of_epochs = 0;
@@ -25,7 +25,8 @@ int main()
     std::array network{create_layer({"input 1", "input 2", "bias"}),
                        create_layer({"hidden 1", "hidden 2", "hidden 3", "hidden 4", "hidden 5"}),
                        create_layer({"output"})};
-    init_network(network, random_gen);
+    init_xor_network(network, random_gen);
+    connect_outgoing(network);
     auto& output_neuron = network.back().at(0);
 
     // Main training loop
@@ -35,18 +36,16 @@ int main()
       for(auto sample: get_xor_dataset())
       {
         clear(network);
-        load_sample(network, sample);
-        propagate(network, 40., timestep);
+        Events events;
+        load_sample(network, events, sample);
+        while(output_neuron.spikes.empty() && events.active())
+          events.process_event();
         if(output_neuron.spikes.empty())
-        {
-          std::cout << "No output spikes! Replacing with different trial. " << std::endl;
-          trial -= 1;
-          sum_squared_error = epoch = 1e9; break;
-        }
+          output_neuron.spike(100);  // bit of a hack to force backprop
         sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
 
         // Backward propagation and changing weights (no batch-mode)
-        output_neuron.compute_delta_weights(learning_rate);
+        output_neuron.backprop(learning_rate);
         for(auto& layer: network)
           for(auto& n: layer)
             for(auto& incoming_connection: n.incoming_connections)

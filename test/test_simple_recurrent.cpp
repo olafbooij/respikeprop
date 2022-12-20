@@ -1,7 +1,17 @@
 #include<iostream>
 #include<vector>
 #include<cassert>
-#include<respikeprop/respikeprop_store_gradients.hpp>
+#include<respikeprop/respikeprop_event_based.hpp>
+
+
+void connect_outgoing(auto& neuron)
+{
+  for(auto& incoming_connection: neuron.incoming_connections)
+  {
+    incoming_connection.post_neuron = &neuron;
+    incoming_connection.neuron->outgoing_connections.emplace_back(&incoming_connection);
+  }
+}
 
 int main()
 {
@@ -14,26 +24,24 @@ int main()
   auto add_synapse = [](auto& pre, auto& post, double weight, double delay)
   {
     auto& incoming_connection = post.incoming_connections.emplace_back(&pre);
-    auto& synapse = incoming_connection.synapses.emplace_back(weight, delay);
-    return synapse;
+    incoming_connection.synapses.emplace_back(weight, delay);
   };
   add_synapse(bounce, bounce, 6., 1.);
   add_synapse(bounce, output, 1., 1.);
   add_synapse(output, bounce, -10., .1);
+  connect_outgoing(bounce);
+  connect_outgoing(output);
 
-  for(int epoch = 0; epoch < 100; ++epoch)
+  for(int epoch = 0; epoch < 300; ++epoch)
   {
-    bounce.fire(0.);
     output.clamped = 7.;
-    const double timestep = .01;
-    for(double time = 0.; time < 30. && output.spikes.empty(); time += timestep)
-    {
-      bounce.forward_propagate(time, timestep);
-      output.forward_propagate(time, timestep);
-    }
+    Events events;
+    events.neuron_spikes.emplace_back(&bounce, 0.);
+    while(output.spikes.empty() && events.active())
+      events.process_event();
     //std::cout << output.spikes.front() << std::endl;
 
-    output.compute_delta_weights(learning_rate);
+    output.backprop(learning_rate);
 
     auto adjust_weights = [](auto& neuron)
     {
@@ -48,7 +56,7 @@ int main()
     adjust_weights(bounce);
     adjust_weights(output);
   }
-  assert(fabs(output.spikes.front() - output.clamped) < learning_rate);
+  assert(fabs(output.spikes.front() - output.clamped) < 1e-7);
 
   return 0;
 }

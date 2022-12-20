@@ -9,14 +9,10 @@ easy to match with the formulas in the paper and therefore has some educational
 value / serves as a good reference. See
 [./respikeprop/respikeprop_reference_impl.hpp](./respikeprop/respikeprop_reference_impl.hpp).
 
-An efficient implementation which stores gradients in the forward pass to allow
-for efficient backpropagation. See
-[./respikeprop/respikeprop_store_gradients.hpp](./respikeprop/respikeprop_store_gradients.hpp).
-
-In addition there's an event-based implementation that does not use discrete
-time-steps, but computes exact spike-time. See
+An efficient event-based implementation that does not use discrete time-steps,
+but computes exact spike-times, enabled by a smart choice of time-constants.
+Gradients are stored in the forward pass to allow for efficient backpropagation. See
 [./respikeprop/respikeprop_event_based.hpp](./respikeprop/respikeprop_event_based.hpp).
-
 
 # Benchmarks
 
@@ -42,3 +38,9 @@ Hence the re-branding of the algorithm as *Re*SpikeProp.
 A more serious feed-forward example is given in
 [./test/n-mnist.cpp](./test/n-mnist.cpp), which uses the Neuromorphic MNIST (N-MNIST) dataset (see
 https://www.garrickorchard.com/datasets/n-mnist).
+
+
+# Build
+
+See : [./requirements.md](./requirements.md).
+
