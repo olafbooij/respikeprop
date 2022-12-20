@@ -17,8 +17,8 @@ namespace resp {
   // Forward propagation is event-based, which means compution is efficient
   // (close to the order of spikes) and spike times are exact, i.e. no
   // quantification errors due to time-steps.
-  // Backpropagation in this implementation is implemented quite efficiently,
-  // keeping gradients in the forward pass.
+  // Backpropagation is implemented quite efficiently, keeping gradients in the
+  // forward pass.
   // Network connectivity is implemented using raw-pointers, leaving
   // responsibility of memory management with the user.
   struct Neuron;
