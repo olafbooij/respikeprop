@@ -251,12 +251,12 @@ namespace resp {
       if(future_spike > 0)
         predicted_spikes.emplace_back(updated_neuron, future_spike);
     }
-    void backprop(const double learning_rate) const
-    {
-      for(const auto& spike: std::ranges::reverse_view{actual_spikes})
-        spike.neuron->backprop_spike(spike.index, learning_rate);
-    }
   };
+  void backprop(const auto& actual_spikes, const double learning_rate)
+  {
+    for(const auto& spike: std::ranges::reverse_view{actual_spikes})
+      spike.neuron->backprop_spike(spike.index, learning_rate);
+  }
 
 }
 
