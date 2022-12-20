@@ -20,7 +20,7 @@ namespace resp
   {
     auto& [input_layer, _, output_layer] = network;
     for(auto& event: pattern.events)
-      events.neuron_spikes.emplace_back(&input_layer.at(event.x * event.y), static_cast<double>(event.timestamp)/1e4); // making input within 30 timesteps
+      events.predicted_spikes.emplace_back(&input_layer.at(event.x * event.y), static_cast<double>(event.timestamp)/1e4); // making input within 30 timesteps
     // not doing anything with polarity.... should perhaps have 2 inputs per pixel...
     for(auto& neuron: output_layer)
       neuron.clamped = 40;
@@ -40,12 +40,12 @@ namespace resp
   }
   auto first_spike_result(auto& network)
   {
-    auto output = std::ranges::min_element(network.back(), [](auto& a, auto& b) noexcept {
+    auto first_neuron = std::ranges::min_element(network.back(), [](auto& a, auto& b) noexcept {
       if(a.spikes.empty()) return false;
       if(b.spikes.empty()) return true;
-      return a.spikes.front() < b.spikes.front();
+      return a.spikes.front().time < b.spikes.front().time;
     });
-    return ranges::distance(network.back().begin(), output);
+    return ranges::distance(network.back().begin(), first_neuron);
   }
 
   auto compute_loss(const auto& network)
@@ -53,7 +53,7 @@ namespace resp
     double loss_pattern = 0;
     for(auto& neuron: network.back())
       if(! neuron.spikes.empty())
-        loss_pattern += .5 * pow(neuron.spikes.front() - neuron.clamped, 2);
+        loss_pattern += .5 * pow(neuron.spikes.front().time - neuron.clamped, 2);
     return loss_pattern;
   }
 }
@@ -103,6 +103,7 @@ int main()
     };
     while(not_all_outputs_spiked() && events.active())
       events.process_event();
+    return events.actual_spikes;
   };
 
   for(int epoch = 0; epoch < 100; ++epoch)
@@ -114,15 +115,14 @@ int main()
     for(const auto& [pattern_i, pattern]: ranges::views::enumerate(spike_patterns_decimated))
     {
       // forward
-      forward_propagate(pattern);
+      auto spikes = forward_propagate(pattern);
 
       // update logs
       loss_batch += compute_loss(network);
       if(first_spike_result(network) != pattern.label) error_epoch++;
 
       // backprop
-      for(auto& neuron: network.back())
-        neuron.backprop(learning_rate);
+      backprop(spikes, learning_rate);
 
       // per batch change weights and report logs
       if((pattern_i + 1) % batch_size == 0 || pattern_i + 1 == spike_patterns_decimated.size())

@@ -36,12 +36,12 @@ int main()
   {
     output.clamped = 7.;
     Events events;
-    events.neuron_spikes.emplace_back(&bounce, 0.);
+    events.predicted_spikes.emplace_back(&bounce, 0.);
     while(output.spikes.empty() && events.active())
       events.process_event();
-    //std::cout << output.spikes.front() << std::endl;
+    //std::cout << output.spikes.front().time << std::endl;
 
-    output.backprop(learning_rate);
+    backprop(events.actual_spikes, learning_rate);
 
     auto adjust_weights = [](auto& neuron)
     {
@@ -56,7 +56,7 @@ int main()
     adjust_weights(bounce);
     adjust_weights(output);
   }
-  assert(fabs(output.spikes.front() - output.clamped) < 1e-7);
+  assert(fabs(output.spikes.front().time - output.clamped) < 1e-7);
 
   return 0;
 }

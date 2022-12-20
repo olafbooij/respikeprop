@@ -42,10 +42,10 @@ int main()
           events.process_event();
         if(output_neuron.spikes.empty())
           output_neuron.spike(100);  // bit of a hack to force backprop
-        sum_squared_error += .5 * pow(output_neuron.spikes.at(0) - output_neuron.clamped, 2);
+        sum_squared_error += .5 * pow(output_neuron.spikes.at(0).time - output_neuron.clamped, 2);
 
         // Backward propagation and changing weights (no batch-mode)
-        output_neuron.backprop(learning_rate);
+        backprop(events.actual_spikes, learning_rate);
         for(auto& layer: network)
           for(auto& n: layer)
             for(auto& incoming_connection: n.incoming_connections)
