@@ -84,8 +84,9 @@ namespace resp {
 
     void update_potentials(double time)
     {
-      u_m *= exp(- (time - last_update) / tau_m);
-      u_s *= exp(- (time - last_update) / tau_s);
+      auto update = exp(- (time - last_update) / tau_m);
+      u_m *= update;
+      u_s *= update * update;
       last_update = time;
     }
 
@@ -134,7 +135,7 @@ namespace resp {
         du_dt = .1;
 
       double spike_diff_exp_m = exp(- (spike_time - last_spike) / tau_m);
-      double spike_diff_exp_s = spike_diff_exp_m * spike_diff_exp_m; //exp(- (spike_time - last_spike) / tau_s);
+      double spike_diff_exp_s = spike_diff_exp_m * spike_diff_exp_m;
 
       for(auto& incoming_connection: incoming_connections)
       {
