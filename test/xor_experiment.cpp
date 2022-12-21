@@ -10,7 +10,7 @@
 
 int main()
 {
-  auto seed = std::random_device()();
+  auto seed = 3775610138; //std::random_device()();
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;

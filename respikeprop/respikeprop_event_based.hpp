@@ -141,23 +141,16 @@ namespace resp {
         incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
         incoming_connection.u_m_prets.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
         incoming_connection.u_s_prets.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
-        for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-          dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
         for(auto& u_m_pret: incoming_connection.u_m_prets)
           u_m_pret *= this_last_spike_diff_exp_m;
         for(auto& u_s_pret: incoming_connection.u_s_prets)
           u_s_pret *= this_last_spike_diff_exp_s;
         for(auto& synapse: incoming_connection.synapses)
         {
-          synapse.dt_dws.emplace_back(0.);
           // update_synapse_potentials
           synapse.u_m *= this_last_spike_diff_exp_m;
           synapse.u_s *= this_last_spike_diff_exp_s;
-        }
-
-        for(auto& synapse: incoming_connection.synapses)
-        {
-          for(const auto& [pre_spike, dpret_dpostts, u_m_pret, u_s_pret]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts, incoming_connection.u_m_prets, incoming_connection.u_s_prets))
+          for(const auto& [pre_spike, u_m_pret, u_s_pret]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.u_m_prets, incoming_connection.u_s_prets))
           {
             double s = spike_time - pre_spike.time - synapse.delay;
             if(pre_spike.time + synapse.delay > last_spike && s >= 0)  // pre-spike came between previous and this spike
@@ -171,21 +164,16 @@ namespace resp {
             }
           }
           if(! spikes.empty()) // non first spike
-          {
-            synapse.u_m -= this_last_spike_diff_exp_m / tau_m * *(synapse.dt_dws.end() - 2);  // will be back(), if I do not do the silly resize, back +=
-          }
-          synapse.dt_dws.back() += - (synapse.u_m + synapse.u_s);
+            synapse.u_m -= this_last_spike_diff_exp_m / tau_m * synapse.dt_dws.back();
+          synapse.dt_dws.emplace_back(- (synapse.u_m + synapse.u_s) / du_dt);
         }
         for(const auto& [dpret_dpostts, u_m_pret, u_s_pret]: ranges::views::zip(incoming_connection.dprets_dpostts, incoming_connection.u_m_prets, incoming_connection.u_s_prets))
         {
-          u_m_pret -= this_last_spike_diff_exp_m / tau_m * *(dpret_dpostts.end() - 2);  // will be back(), if I do not do the silly resize, back +=
-          dpret_dpostts.back() += - (u_m_pret / tau_m + u_s_pret / tau_s);
+          if(! dpret_dpostts.empty()) // non first spike
+            u_m_pret -= this_last_spike_diff_exp_m / tau_m * dpret_dpostts.back(); // could also do this afterwards
+          dpret_dpostts.resize(spikes.size(), 0.);
+          dpret_dpostts.emplace_back(- (u_m_pret / tau_m + u_s_pret / tau_s) / du_dt);
         }
-
-        for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-          dpret_dpostts.back() /= du_dt;
-        for(auto& synapse: incoming_connection.synapses)
-          synapse.dt_dws.back() /= du_dt;
       }
     }
 
