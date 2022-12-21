@@ -17,8 +17,8 @@ namespace resp {
   // Forward propagation is event-based, which means compution is efficient
   // (close to the order of spikes) and spike times are exact, i.e. no
   // quantification errors due to time-steps.
-  // Backpropagation in this implementation is implemented quite efficiently,
-  // keeping gradients in the forward pass.
+  // Backpropagation is implemented quite efficiently, keeping gradients in the
+  // forward pass.
   // Network connectivity is implemented using raw-pointers, leaving
   // responsibility of memory management with the user.
   struct Neuron;
@@ -33,9 +33,17 @@ namespace resp {
       double delay;
       double delta_weight;
       std::vector<double> dt_dws;  // same order as spikes
+      double u_m;
+      double u_s;
     };
     std::vector<Synapse> synapses;
-    std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
+    struct DPreSpike
+    {
+      std::vector<double> dpostts; // same order as spikes
+      double u_m = 0;
+      double u_s = 0;
+    };
+    std::vector<DPreSpike> dpre_spikes;
   };
 
   struct Neuron
@@ -49,11 +57,11 @@ namespace resp {
       double dE_dt;
     };
     std::vector<Spike> spikes;
-    const double tau_m = 4.0;
-    const double tau_s = tau_m / 2;
+    static constexpr double tau = 4.0;
     double u_m;
     double u_s;
     double last_update = 0.;
+    double last_spike = 0.;
     double clamped = 0.;
     std::string key;
 
@@ -62,32 +70,35 @@ namespace resp {
       spikes.clear();
       for(auto& incoming_connection: incoming_connections)
       {
-        incoming_connection.dprets_dpostts.clear();
+        incoming_connection.dpre_spikes.clear();
         for(auto& incoming_synapse: incoming_connection.synapses)
+        {
           incoming_synapse.dt_dws.clear();
+          incoming_synapse.u_m = 0;
+          incoming_synapse.u_s = 0;
+        }
       }
-      u_m = u_s = 0;
+      u_m = u_s = last_update = last_spike = 0;
     }
 
     void update_potentials(double time)
     {
-      u_m *= exp(- (time - last_update) / tau_m);  // could make this compile time by fixing timestep and tau's
-      u_s *= exp(- (time - last_update) / tau_s);
+      auto update = exp(- (time - last_update) / tau);
+      u_m *= update;
+      u_s *= update * update;
       last_update = time;
     }
 
     // compute exact future firing time (should document the derivation of this formula)
     double compute_future_spike()
     {
-      const double threshold = 1.;
-      double D = u_m * u_m - 4 * u_s * -threshold;
-      double possible_spike = 0;
+      double D = u_m * u_m + 4 * u_s;
       if(D > 0)
       {
         double expdt = (- u_m - sqrt(D)) / (2 * u_s);
         if(expdt > 0)
         {
-          double predict_spike = - log(expdt) * tau_m;
+          double predict_spike = - log(expdt) * tau;
           if(predict_spike > 0)
             return last_update + predict_spike;
         }
@@ -106,57 +117,58 @@ namespace resp {
 
     void spike(double time)
     {
-      const double threshold = 1.;
       update_potentials(time);
 
       store_gradients(time);
       spikes.emplace_back(time, 0.);
-      u_m -= threshold;
+      last_spike = time;
+      u_m -= 1.;
     }
 
     void store_gradients(double spike_time)
     {
-      double du_dt = - u_m / tau_m - u_s / tau_s;
+      double du_dt = - (u_m + u_s * 2) / tau;
       if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
         du_dt = .1;
 
+      double spike_diff_exp_m = exp(- (spike_time - last_spike) / tau);
+      double spike_diff_exp_s = spike_diff_exp_m * spike_diff_exp_m;
+
       for(auto& incoming_connection: incoming_connections)
       {
-        incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
-        for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-          dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
+        incoming_connection.dpre_spikes.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
+        for(auto& dpre_spike: incoming_connection.dpre_spikes)
+        {
+          dpre_spike.u_m *= spike_diff_exp_m;
+          dpre_spike.u_s *= spike_diff_exp_s;
+        }
         for(auto& synapse: incoming_connection.synapses)
-          synapse.dt_dws.emplace_back(0.);
-
-        for(auto& synapse: incoming_connection.synapses)
-          for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
+        {
+          // update_synapse_potentials
+          synapse.u_m *= spike_diff_exp_m;
+          synapse.u_s *= spike_diff_exp_s;
+          for(const auto& [pre_spike, dpre_spike]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dpre_spikes))
           {
             double s = spike_time - pre_spike.time - synapse.delay;
-            if(s >= 0)
+            if(pre_spike.time + synapse.delay > last_spike && s >= 0)  // pre-spike came between previous and this spike
             {
-              auto u_m1 =   synapse.weight * exp(-s / tau_m);
-              auto u_s1 = - synapse.weight * exp(-s / tau_s);
-              synapse.dt_dws.back() += - (u_m1 + u_s1) / synapse.weight;
-              dpret_dpostts.back() += - (u_m1 / tau_m + u_s1 / tau_s);
+              auto u_m1 = exp(-s / tau);
+              auto u_s1 = - u_m1 * u_m1;
+              synapse.u_m += u_m1;
+              synapse.u_s += u_s1;
+              dpre_spike.u_m += synapse.weight * u_m1;
+              dpre_spike.u_s += synapse.weight * u_s1;
             }
           }
-
-        for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
-        {
-          double s = spike_time - ref_spike.time;
-          if(s >= 0)
-          {
-            double u_r1 = exp(-s / tau_m) / tau_m;
-            for(auto& synapse: incoming_connection.synapses)
-              synapse.dt_dws.back() += u_r1 * synapse.dt_dws.at(ref_spike_i);
-            for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-              dpret_dpostts.back()  += u_r1 * dpret_dpostts.at(ref_spike_i);
-          }
+          synapse.dt_dws.emplace_back(- (synapse.u_m + synapse.u_s) / du_dt);
+          synapse.u_m -= spike_diff_exp_m / tau * synapse.dt_dws.back();
         }
-        for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-          dpret_dpostts.back() /= du_dt;
-        for(auto& synapse: incoming_connection.synapses)
-          synapse.dt_dws.back() /= du_dt;
+        for(auto& dpre_spike: incoming_connection.dpre_spikes)
+        {
+          dpre_spike.dpostts.resize(spikes.size(), 0.); // needed because previous post spikes might be before pre spike
+          dpre_spike.dpostts.emplace_back(- (dpre_spike.u_m + dpre_spike.u_s * 2) / tau / du_dt);
+          dpre_spike.u_m -= spike_diff_exp_m / tau * dpre_spike.dpostts.back();
+        }
       }
     }
 
@@ -171,14 +183,14 @@ namespace resp {
       {
         for(auto& synapse: incoming_connection.synapses)
           synapse.delta_weight -= learning_rate * spike.dE_dt * synapse.dt_dws.at(spike_i);
-        for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
-          pre_spike.dE_dt += spike.dE_dt * dpret_dpostts.at(spike_i);
+        for(const auto& [pre_spike, dpre_spike]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dpre_spikes))
+          pre_spike.dE_dt += spike.dE_dt * dpre_spike.dpostts.at(spike_i);
       }
     }
   };
 
 
-  // The following class keeps track of all the event and handles the forward
+  // The Events class keeps track of all the event and handles the forward
   // propagation.
   struct NeuronSpike
   {
@@ -218,7 +230,7 @@ namespace resp {
       // compute_earliest_neuron_spike
       auto neuron_spike = std::ranges::max_element(predicted_spikes, [](const auto& a, const auto& b) noexcept {return a.time > b.time;});
       Neuron* updated_neuron;
-      // bit of ugly logic to determine which type of event is first 
+      // bit of ugly logic to determine which type of event is first
       if(predicted_spikes.empty() || ((! synapse_spikes.empty()) && synapse_spikes.top().time < neuron_spike->time))
       { // process synapse
         auto& synapse_spike = synapse_spikes.top();
@@ -245,7 +257,7 @@ namespace resp {
       if(neuron_spike != predicted_spikes.end())
         predicted_spikes.erase(neuron_spike);
       // check for new spike
-      auto future_spike = updated_neuron->compute_future_spike(); 
+      auto future_spike = updated_neuron->compute_future_spike();
       if(future_spike > 0)
         predicted_spikes.emplace_back(updated_neuron, future_spike);
     }
