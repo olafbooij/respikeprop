@@ -133,29 +133,29 @@ namespace resp {
       if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
         du_dt = .1;
 
-      double this_last_spike_diff_exp_m = exp(- (spike_time - last_spike) / tau_m);
-      double this_last_spike_diff_exp_s = exp(- (spike_time - last_spike) / tau_s);
+      double spike_diff_exp_m = exp(- (spike_time - last_spike) / tau_m);
+      double spike_diff_exp_s = spike_diff_exp_m * spike_diff_exp_m; //exp(- (spike_time - last_spike) / tau_s);
 
       for(auto& incoming_connection: incoming_connections)
       {
         incoming_connection.dpre_spikes.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
         for(auto& dpre_spike: incoming_connection.dpre_spikes)
         {
-          dpre_spike.u_m *= this_last_spike_diff_exp_m;
-          dpre_spike.u_s *= this_last_spike_diff_exp_s;
+          dpre_spike.u_m *= spike_diff_exp_m;
+          dpre_spike.u_s *= spike_diff_exp_s;
         }
         for(auto& synapse: incoming_connection.synapses)
         {
           // update_synapse_potentials
-          synapse.u_m *= this_last_spike_diff_exp_m;
-          synapse.u_s *= this_last_spike_diff_exp_s;
+          synapse.u_m *= spike_diff_exp_m;
+          synapse.u_s *= spike_diff_exp_s;
           for(const auto& [pre_spike, dpre_spike]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dpre_spikes))
           {
             double s = spike_time - pre_spike.time - synapse.delay;
             if(pre_spike.time + synapse.delay > last_spike && s >= 0)  // pre-spike came between previous and this spike
             {
-              auto u_m1 =    exp(-s / tau_m);
-              auto u_s1 = -  exp(-s / tau_s);
+              auto u_m1 = exp(-s / tau_m);
+              auto u_s1 = - u_m1 * u_m1;
               synapse.u_m += u_m1;
               synapse.u_s += u_s1;
               dpre_spike.u_m += synapse.weight * u_m1;
@@ -163,13 +163,13 @@ namespace resp {
             }
           }
           synapse.dt_dws.emplace_back(- (synapse.u_m + synapse.u_s) / du_dt);
-          synapse.u_m -= this_last_spike_diff_exp_m / tau_m * synapse.dt_dws.back();
+          synapse.u_m -= spike_diff_exp_m / tau_m * synapse.dt_dws.back();
         }
         for(auto& dpre_spike: incoming_connection.dpre_spikes)
         {
           dpre_spike.dpostts.resize(spikes.size(), 0.); // needed because previous post spikes might be before pre spike
           dpre_spike.dpostts.emplace_back(- (dpre_spike.u_m / tau_m + dpre_spike.u_s / tau_s) / du_dt);
-          dpre_spike.u_m -= this_last_spike_diff_exp_m / tau_m * dpre_spike.dpostts.back();
+          dpre_spike.u_m -= spike_diff_exp_m / tau_m * dpre_spike.dpostts.back();
         }
       }
     }
