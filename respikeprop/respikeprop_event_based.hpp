@@ -57,7 +57,7 @@ namespace resp {
       double dE_dt;
     };
     std::vector<Spike> spikes;
-    const double tau = 4.0;
+    static constexpr double tau = 4.0;
     double u_m;
     double u_s;
     double last_update = 0.;
@@ -190,7 +190,7 @@ namespace resp {
   };
 
 
-  // The following class keeps track of all the event and handles the forward
+  // The Events class keeps track of all the event and handles the forward
   // propagation.
   struct NeuronSpike
   {
