@@ -133,6 +133,10 @@ namespace resp {
       if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
         du_dt = .1;
 
+      double this_last_spike_diff = spike_time - last_spike;
+      double this_last_spike_diff_exp_m = exp(- this_last_spike_diff / tau_m);
+      double this_last_spike_diff_exp_s = exp(- this_last_spike_diff / tau_s);
+
       for(auto& incoming_connection: incoming_connections)
       {
         incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
@@ -141,15 +145,15 @@ namespace resp {
         for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
           dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
         for(auto& u_m_pret: incoming_connection.u_m_prets)
-          u_m_pret *= exp(- (spike_time - last_spike) / tau_m);
+          u_m_pret *= this_last_spike_diff_exp_m;
         for(auto& u_s_pret: incoming_connection.u_s_prets)
-          u_s_pret *= exp(- (spike_time - last_spike) / tau_s);
+          u_s_pret *= this_last_spike_diff_exp_s;
         for(auto& synapse: incoming_connection.synapses)
         {
           synapse.dt_dws.emplace_back(0.);
           // update_synapse_potentials
-          synapse.u_m *= exp(- (spike_time - last_spike) / tau_m);
-          synapse.u_s *= exp(- (spike_time - last_spike) / tau_s);
+          synapse.u_m *= this_last_spike_diff_exp_m;
+          synapse.u_s *= this_last_spike_diff_exp_s;
         }
 
         for(auto& synapse: incoming_connection.synapses)
@@ -157,17 +161,14 @@ namespace resp {
           for(const auto& [pre_spike, dpret_dpostts, u_m_pret, u_s_pret]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts, incoming_connection.u_m_prets, incoming_connection.u_s_prets))
           {
             double s = spike_time - pre_spike.time - synapse.delay;
-            if(s >= 0)
+            if(pre_spike.time + synapse.delay > last_spike && s >= 0)  // pre-spike came between previous and this spike
             {
-              if(pre_spike.time + synapse.delay > last_spike)
-              {
-                auto u_m1 =    exp(-s / tau_m);
-                auto u_s1 = -  exp(-s / tau_s);
-                synapse.u_m += u_m1;
-                synapse.u_s += u_s1;
-                u_m_pret += synapse.weight * u_m1;
-                u_s_pret += synapse.weight * u_s1;
-              }
+              auto u_m1 =    exp(-s / tau_m);
+              auto u_s1 = -  exp(-s / tau_s);
+              synapse.u_m += u_m1;
+              synapse.u_s += u_s1;
+              u_m_pret += synapse.weight * u_m1;
+              u_s_pret += synapse.weight * u_s1;
             }
           }
           synapse.dt_dws.back() += - (synapse.u_m + synapse.u_s);
@@ -252,7 +253,7 @@ namespace resp {
       // compute_earliest_neuron_spike
       auto neuron_spike = std::ranges::max_element(predicted_spikes, [](const auto& a, const auto& b) noexcept {return a.time > b.time;});
       Neuron* updated_neuron;
-      // bit of ugly logic to determine which type of event is first 
+      // bit of ugly logic to determine which type of event is first
       if(predicted_spikes.empty() || ((! synapse_spikes.empty()) && synapse_spikes.top().time < neuron_spike->time))
       { // process synapse
         auto& synapse_spike = synapse_spikes.top();
@@ -279,7 +280,7 @@ namespace resp {
       if(neuron_spike != predicted_spikes.end())
         predicted_spikes.erase(neuron_spike);
       // check for new spike
-      auto future_spike = updated_neuron->compute_future_spike(); 
+      auto future_spike = updated_neuron->compute_future_spike();
       if(future_spike > 0)
         predicted_spikes.emplace_back(updated_neuron, future_spike);
     }
