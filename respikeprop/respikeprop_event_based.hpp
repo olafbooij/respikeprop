@@ -57,8 +57,7 @@ namespace resp {
       double dE_dt;
     };
     std::vector<Spike> spikes;
-    const double tau_m = 4.0;
-    const double tau_s = tau_m / 2;
+    const double tau = 4.0;
     double u_m;
     double u_s;
     double last_update = 0.;
@@ -84,7 +83,7 @@ namespace resp {
 
     void update_potentials(double time)
     {
-      auto update = exp(- (time - last_update) / tau_m);
+      auto update = exp(- (time - last_update) / tau);
       u_m *= update;
       u_s *= update * update;
       last_update = time;
@@ -100,7 +99,7 @@ namespace resp {
         double expdt = (- u_m - sqrt(D)) / (2 * u_s);
         if(expdt > 0)
         {
-          double predict_spike = - log(expdt) * tau_m;
+          double predict_spike = - log(expdt) * tau;
           if(predict_spike > 0)
             return last_update + predict_spike;
         }
@@ -130,11 +129,11 @@ namespace resp {
 
     void store_gradients(double spike_time)
     {
-      double du_dt = - u_m / tau_m - u_s / tau_s;
+      double du_dt = - (u_m + u_s * 2) / tau;
       if(du_dt < .1) // handling discontinuity circumstance 1 Sec 3.2
         du_dt = .1;
 
-      double spike_diff_exp_m = exp(- (spike_time - last_spike) / tau_m);
+      double spike_diff_exp_m = exp(- (spike_time - last_spike) / tau);
       double spike_diff_exp_s = spike_diff_exp_m * spike_diff_exp_m;
 
       for(auto& incoming_connection: incoming_connections)
@@ -155,7 +154,7 @@ namespace resp {
             double s = spike_time - pre_spike.time - synapse.delay;
             if(pre_spike.time + synapse.delay > last_spike && s >= 0)  // pre-spike came between previous and this spike
             {
-              auto u_m1 = exp(-s / tau_m);
+              auto u_m1 = exp(-s / tau);
               auto u_s1 = - u_m1 * u_m1;
               synapse.u_m += u_m1;
               synapse.u_s += u_s1;
@@ -164,13 +163,13 @@ namespace resp {
             }
           }
           synapse.dt_dws.emplace_back(- (synapse.u_m + synapse.u_s) / du_dt);
-          synapse.u_m -= spike_diff_exp_m / tau_m * synapse.dt_dws.back();
+          synapse.u_m -= spike_diff_exp_m / tau * synapse.dt_dws.back();
         }
         for(auto& dpre_spike: incoming_connection.dpre_spikes)
         {
           dpre_spike.dpostts.resize(spikes.size(), 0.); // needed because previous post spikes might be before pre spike
-          dpre_spike.dpostts.emplace_back(- (dpre_spike.u_m / tau_m + dpre_spike.u_s / tau_s) / du_dt);
-          dpre_spike.u_m -= spike_diff_exp_m / tau_m * dpre_spike.dpostts.back();
+          dpre_spike.dpostts.emplace_back(- (dpre_spike.u_m + dpre_spike.u_s * 2) / tau / du_dt);
+          dpre_spike.u_m -= spike_diff_exp_m / tau * dpre_spike.dpostts.back();
         }
       }
     }
