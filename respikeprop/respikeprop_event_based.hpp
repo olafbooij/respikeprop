@@ -33,9 +33,13 @@ namespace resp {
       double delay;
       double delta_weight;
       std::vector<double> dt_dws;  // same order as spikes
+      double u_m;
+      double u_s;
     };
     std::vector<Synapse> synapses;
     std::vector<std::vector<double>> dprets_dpostts; // per prespike per postspike
+    std::vector<double> u_m_prets; // per prespike per um
+    std::vector<double> u_s_prets; // per prespike per us
   };
 
   struct Neuron
@@ -54,6 +58,7 @@ namespace resp {
     double u_m;
     double u_s;
     double last_update = 0.;
+    double last_spike = 0.;
     double clamped = 0.;
     std::string key;
 
@@ -63,15 +68,22 @@ namespace resp {
       for(auto& incoming_connection: incoming_connections)
       {
         incoming_connection.dprets_dpostts.clear();
+        incoming_connection.u_m_prets.clear();
+        incoming_connection.u_s_prets.clear();
         for(auto& incoming_synapse: incoming_connection.synapses)
+        {
           incoming_synapse.dt_dws.clear();
+          incoming_synapse.u_m = 0;
+          incoming_synapse.u_s = 0;
+          //incoming_synapse.last_update = 0;
+        }
       }
-      u_m = u_s = 0;
+      u_m = u_s = last_update = last_spike = 0;
     }
 
     void update_potentials(double time)
     {
-      u_m *= exp(- (time - last_update) / tau_m);  // could make this compile time by fixing timestep and tau's
+      u_m *= exp(- (time - last_update) / tau_m);
       u_s *= exp(- (time - last_update) / tau_s);
       last_update = time;
     }
@@ -111,6 +123,7 @@ namespace resp {
 
       store_gradients(time);
       spikes.emplace_back(time, 0.);
+      last_spike = time;
       u_m -= threshold;
     }
 
@@ -123,23 +136,44 @@ namespace resp {
       for(auto& incoming_connection: incoming_connections)
       {
         incoming_connection.dprets_dpostts.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
+        incoming_connection.u_m_prets.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
+        incoming_connection.u_s_prets.resize(incoming_connection.neuron->spikes.size());  // make sure there's an entry for all pre spikes
         for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
           dpret_dpostts.resize(spikes.size() + 1, 0.);  // make sure there's an entry for all post spikes
+        for(auto& u_m_pret: incoming_connection.u_m_prets)
+          u_m_pret *= exp(- (spike_time - last_spike) / tau_m);
+        for(auto& u_s_pret: incoming_connection.u_s_prets)
+          u_s_pret *= exp(- (spike_time - last_spike) / tau_s);
         for(auto& synapse: incoming_connection.synapses)
+        {
           synapse.dt_dws.emplace_back(0.);
+          // update_synapse_potentials
+          synapse.u_m *= exp(- (spike_time - last_spike) / tau_m);
+          synapse.u_s *= exp(- (spike_time - last_spike) / tau_s);
+        }
 
         for(auto& synapse: incoming_connection.synapses)
-          for(const auto& [pre_spike, dpret_dpostts]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts))
+        {
+          for(const auto& [pre_spike, dpret_dpostts, u_m_pret, u_s_pret]: ranges::views::zip(incoming_connection.neuron->spikes, incoming_connection.dprets_dpostts, incoming_connection.u_m_prets, incoming_connection.u_s_prets))
           {
             double s = spike_time - pre_spike.time - synapse.delay;
             if(s >= 0)
             {
-              auto u_m1 =   synapse.weight * exp(-s / tau_m);
-              auto u_s1 = - synapse.weight * exp(-s / tau_s);
-              synapse.dt_dws.back() += - (u_m1 + u_s1) / synapse.weight;
-              dpret_dpostts.back() += - (u_m1 / tau_m + u_s1 / tau_s);
+              if(pre_spike.time + synapse.delay > last_spike)
+              {
+                auto u_m1 =    exp(-s / tau_m);
+                auto u_s1 = -  exp(-s / tau_s);
+                synapse.u_m += u_m1;
+                synapse.u_s += u_s1;
+                u_m_pret += synapse.weight * u_m1;
+                u_s_pret += synapse.weight * u_s1;
+              }
             }
           }
+          synapse.dt_dws.back() += - (synapse.u_m + synapse.u_s);
+        }
+        for(const auto& [dpret_dpostts, u_m_pret, u_s_pret]: ranges::views::zip(incoming_connection.dprets_dpostts, incoming_connection.u_m_prets, incoming_connection.u_s_prets))
+          dpret_dpostts.back() += - (u_m_pret / tau_m + u_s_pret / tau_s);
 
         for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
         {
