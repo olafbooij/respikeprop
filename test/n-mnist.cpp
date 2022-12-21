@@ -106,7 +106,7 @@ int main()
     return events.actual_spikes;
   };
 
-  for(int epoch = 0; epoch < 1; ++epoch)
+  for(int epoch = 0; epoch < 100; ++epoch)
   {
     auto spike_patterns_decimated = decimate_events(spike_patterns_train, 200, random_gen);
     double loss_batch = 0;
