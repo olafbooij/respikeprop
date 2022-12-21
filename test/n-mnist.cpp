@@ -26,7 +26,7 @@ namespace resp
       neuron.clamped = 40;
     output_layer.at(static_cast<std::size_t>(pattern.label)).clamped = 30;
   }
-  void init_network_n_mnist(auto& network, auto& random_gen)
+  void init_network_n_mnist_f(auto& network, auto&& weight_gen)
   {
     auto& [input_layer, hidden_layer, output_layer] = network;
     connect_layers(input_layer, hidden_layer);
@@ -36,7 +36,28 @@ namespace resp
       for(auto& n: layer)
         for(auto& incoming_connection: n.incoming_connections)
           for(auto& synapse: incoming_connection.synapses)
-            synapse.weight = std::uniform_real_distribution<>(-.025, .05)(random_gen);
+            synapse.weight = weight_gen();
+  }
+  void init_network_n_mnist(auto& network, auto& random_gen)
+  {
+    init_network_n_mnist_f(network, [&random_gen](){return std::uniform_real_distribution<>(-.025, .05)(random_gen);});
+  }
+  void init_network_n_mnist_from_stream(auto& network, auto&& file)
+  {
+    init_network_n_mnist_f(network, [&file]()
+    {
+      double weight;
+      file >> weight;
+      return weight;
+    });
+  }
+  void save_network_n_mnist(auto& network, auto&& file)
+  {
+    for(auto& layer: network)
+      for(auto& n: layer)
+        for(auto& incoming_connection: n.incoming_connections)
+          for(auto& synapse: incoming_connection.synapses)
+            file << synapse.weight << std::endl;
   }
   auto first_spike_result(auto& network)
   {
@@ -60,7 +81,7 @@ namespace resp
 
 int main()
 {
-  auto seed = std::random_device()();
+  auto seed = 1; //std::random_device()();
   std::cout << "random seed = " << seed << std::endl;
   std::mt19937 random_gen(seed);
   using namespace resp;
@@ -106,7 +127,7 @@ int main()
     return events.actual_spikes;
   };
 
-  for(int epoch = 0; epoch < 100; ++epoch)
+  for(int epoch = 0; epoch < 1; ++epoch)
   {
     auto spike_patterns_decimated = decimate_events(spike_patterns_train, 200, random_gen);
     double loss_batch = 0;
