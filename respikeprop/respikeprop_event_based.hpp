@@ -92,8 +92,7 @@ namespace resp {
     // compute exact future firing time (should document the derivation of this formula)
     double compute_future_spike()
     {
-      const double threshold = 1.;
-      double D = u_m * u_m - 4 * u_s * -threshold;
+      double D = u_m * u_m + 4 * u_s;
       if(D > 0)
       {
         double expdt = (- u_m - sqrt(D)) / (2 * u_s);
@@ -118,13 +117,12 @@ namespace resp {
 
     void spike(double time)
     {
-      const double threshold = 1.;
       update_potentials(time);
 
       store_gradients(time);
       spikes.emplace_back(time, 0.);
       last_spike = time;
-      u_m -= threshold;
+      u_m -= 1.;
     }
 
     void store_gradients(double spike_time)
