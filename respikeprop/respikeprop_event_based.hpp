@@ -75,7 +75,6 @@ namespace resp {
           incoming_synapse.dt_dws.clear();
           incoming_synapse.u_m = 0;
           incoming_synapse.u_s = 0;
-          //incoming_synapse.last_update = 0;
         }
       }
       u_m = u_s = last_update = last_spike = 0;
@@ -171,23 +170,18 @@ namespace resp {
               u_s_pret += synapse.weight * u_s1;
             }
           }
+          if(! spikes.empty()) // non first spike
+          {
+            synapse.u_m -= this_last_spike_diff_exp_m / tau_m * *(synapse.dt_dws.end() - 2);  // will be back(), if I do not do the silly resize, back +=
+          }
           synapse.dt_dws.back() += - (synapse.u_m + synapse.u_s);
         }
         for(const auto& [dpret_dpostts, u_m_pret, u_s_pret]: ranges::views::zip(incoming_connection.dprets_dpostts, incoming_connection.u_m_prets, incoming_connection.u_s_prets))
-          dpret_dpostts.back() += - (u_m_pret / tau_m + u_s_pret / tau_s);
-
-        for(const auto& [ref_spike_i, ref_spike]: ranges::views::enumerate(spikes))
         {
-          double s = spike_time - ref_spike.time;
-          if(s >= 0)
-          {
-            double u_r1 = exp(-s / tau_m) / tau_m;
-            for(auto& synapse: incoming_connection.synapses)
-              synapse.dt_dws.back() += u_r1 * synapse.dt_dws.at(ref_spike_i);
-            for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
-              dpret_dpostts.back()  += u_r1 * dpret_dpostts.at(ref_spike_i);
-          }
+          u_m_pret -= this_last_spike_diff_exp_m / tau_m * *(dpret_dpostts.end() - 2);  // will be back(), if I do not do the silly resize, back +=
+          dpret_dpostts.back() += - (u_m_pret / tau_m + u_s_pret / tau_s);
         }
+
         for(auto& dpret_dpostts: incoming_connection.dprets_dpostts)
           dpret_dpostts.back() /= du_dt;
         for(auto& synapse: incoming_connection.synapses)
